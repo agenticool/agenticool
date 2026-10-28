@@ -20,6 +20,8 @@ Before claiming, check for one logical outcome, testable acceptance criteria, a 
 
 Use the fresh fetch already recorded; fetch again only if the base may have moved. Print the branch name with `npx agenticool-delivery branch-name <issue> --actor agent` (add `--layer <n>` for layer 2 and up).
 
+After `git fetch origin` and before any `git worktree add` or `git switch`, run `git worktree list --porcelain` and find the target branch: a new branch, a resumed claim's branch, or a stacked layer. When another worktree, under either tool's directory, has it checked out, stop and report that worktree's path, and never work around the conflict, as `.agents/worktree-isolation.md` forbids. Rework is not blocked, because it detaches at `origin/<branch>` instead of checking the branch out.
+
 In the main thread, run `git worktree add -b <branch> .claude/worktrees/<branch-slug> <base-SHA>` from the checkout root, where `<branch-slug>` is the branch name with `/` replaced by `-`, and run every later command from that worktree, never in the human checkout. An isolated implementer starts in the linked worktree the Agent tool created under `.claude/worktrees/` and runs `git switch -c <branch> <base-SHA>` there.
 
 Run `npm ci` inside the worktree when the checks need Node dependencies. Rework uses a detached worktree instead, as [Rework](#rework) describes.

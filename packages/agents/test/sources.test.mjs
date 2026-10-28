@@ -366,6 +366,50 @@ test('the delivery owner runs stack operations itself through the shared stack s
   }
 });
 
+test('delivery stops when another worktree has the target branch checked out', () => {
+  for (const path of DELIVERY) {
+    const worktree = section(rendered.get(path), 'Worktree');
+    const check = worktree.indexOf('run `git worktree list --porcelain`');
+    assert.ok(check > worktree.indexOf('After `git fetch origin`'), path);
+    assert.ok(check < worktree.indexOf('git worktree add -b'), path);
+    if (worktree.includes('git switch -c'))
+      assert.ok(check < worktree.indexOf('git switch -c'), path);
+    assert.ok(
+      lineWith(
+        worktree,
+        'a new branch, a resumed claim',
+        'a stacked layer',
+        "stop and report that worktree's path",
+        '.agents/worktree-isolation.md',
+      ),
+      path,
+    );
+    assert.ok(
+      lineWith(worktree, 'Rework is not blocked', 'detaches at `origin/'),
+      path,
+    );
+  }
+  assert.ok(
+    lineWith(
+      rendered.get('.agents/worktree-isolation.md'),
+      '`git worktree list --porcelain`',
+      "stop and report that worktree's path",
+      'no forced checkout',
+      'no deleting or renaming the other worktree or its branch',
+      'no `git worktree prune` or `git worktree remove` on a worktree you did not create',
+    ),
+  );
+  for (const path of STACK)
+    assert.ok(
+      lineWith(
+        section(rendered.get(path), 'Operations'),
+        'A rebase, cascade, or push never moves a branch that another worktree has checked out',
+        '(#inspect-before-every-mutation)',
+      ),
+      path,
+    );
+});
+
 test('independent review stays a separate fresh-context gate on mandatory paths', () => {
   const files = rendered;
   for (const path of DELIVERY) {
