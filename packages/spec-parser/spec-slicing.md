@@ -1,6 +1,6 @@
 # Slicing a specification for filing
 
-The spec-to-issues skill files the delivery plan of a specification as one root container, an epic per phase under it, containers, and leaf issues. It reads the format in this guide and nothing else. A specification written to it files cleanly; one that breaks it fails pre-flight, and the failure names the rule from [Pre-flight rules](#pre-flight-rules). `agenticool-spec plan <spec>` from `@agenticool/spec-parser` builds the plan and checks the pre-flight rules through `label-exists` offline. The parser, the skill source, and this guide change together in the same PR: a new field, rule, or ownership convention goes into all of them.
+The spec-to-issues skill files the delivery plan of a specification as one root container, an epic per phase under it, containers, and leaf issues. It reads the format in this guide and nothing else. A specification written to it files cleanly; one that breaks it fails pre-flight, and the failure names the rule from [Pre-flight rules](#pre-flight-rules). `agenticool-spec plan <spec>` from `@agenticool/spec-parser` builds the plan, renders every body as [body-shapes.md](body-shapes.md) describes, and checks all the pre-flight rules offline. The parser, the skill source, and this guide change together in the same PR: a new field, rule, or ownership convention goes into all of them.
 
 `fixtures/conforming-spec.md` in this package is a complete small example; read it next to this guide. `violating-spec.md` beside it breaks one rule.
 

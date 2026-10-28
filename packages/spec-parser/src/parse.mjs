@@ -47,9 +47,10 @@
 
 export const PLAN_ID = /^P\d+[A-Z]?\.\d+[a-z]?$/;
 export const CROSS_SPEC = /^spec \d+(?:\.\d+)* P\d+[A-Z]?\.\d+[a-z]?$/;
-const PLAN_ID_MENTION = /(?<![\w.])P\d+[A-Z]?\.\d+[a-z]?(?!\w|\.\d)/g;
-const CROSS_SPEC_MENTION = /\bspec \d+(?:\.\d+)* P\d+[A-Z]?\.\d+[a-z]?\b/gi;
-const SECTION_REF = /§(\d+(?:\.\d+)*)/g;
+export const PLAN_ID_MENTION = /(?<![\w.])P\d+[A-Z]?\.\d+[a-z]?(?!\w|\.\d)/g;
+export const CROSS_SPEC_MENTION =
+  /\bspec \d+(?:\.\d+)* P\d+[A-Z]?\.\d+[a-z]?\b/gi;
+export const SECTION_REF = /§(\d+(?:\.\d+)*)/g;
 const NUMBERED = /^(\d+(?:\.\d+)*)\.? (.+)$/;
 const SIZES = ['XS', 'S', 'M'];
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'none'];
@@ -116,6 +117,32 @@ const isSeparator = (line) =>
   /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/.test(line);
 
 /**
+ * Whether each line is fenced code, its opening and closing fences included.
+ * @param {string[]} lines
+ * @returns {boolean[]}
+ */
+export function fencedLines(lines) {
+  /** @type {boolean[]} */
+  const fenced = [];
+  let fence = '';
+  for (const line of lines) {
+    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+    if (marker && !fence) {
+      fence = marker;
+      fenced.push(true);
+    } else if (
+      marker &&
+      marker[0] === fence[0] &&
+      marker.length >= fence.length
+    ) {
+      fence = '';
+      fenced.push(true);
+    } else fenced.push(Boolean(fence));
+  }
+  return fenced;
+}
+
+/**
  * Expands `{a,b}` groups, so `src/{a,b}.ts` stands for two files.
  * @param {string} pattern
  * @returns {string[]}
@@ -172,23 +199,7 @@ export function parse(text) {
    */
   const report = (rule, message) => problems.push({ rule, message });
 
-  /** @type {boolean[]} */
-  const fenced = [];
-  let fence = '';
-  for (const line of lines) {
-    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
-    if (marker && !fence) {
-      fence = marker;
-      fenced.push(true);
-    } else if (
-      marker &&
-      marker[0] === fence[0] &&
-      marker.length >= fence.length
-    ) {
-      fence = '';
-      fenced.push(true);
-    } else fenced.push(Boolean(fence));
-  }
+  const fenced = fencedLines(lines);
 
   for (const [index, line] of lines.entries())
     if (line.includes('@@issue:'))

@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -98,9 +104,68 @@ test('help exits 0 and a usage error exits 1', () => {
   assert.equal(help.status, 0);
   assert.match(
     help.stdout,
-    /^Usage: agenticool-spec plan <spec> \[--json <file>\]/,
+    /^Usage: agenticool-spec plan <spec> \[--bodies <dir>\] \[--json <file>\]/,
   );
   const usage = run(['file', 'spec.md']);
   assert.equal(usage.status, 1);
   assert.match(usage.stderr, /^Expected plan <spec>\n\nUsage:/);
+});
+
+test('plan --bodies writes every rendered body, with the policy prefix', () => {
+  const cwd = repository(BASE, ['risk: security']);
+  writeFileSync(
+    join(cwd, '.agents/policy.json'),
+    JSON.stringify({
+      binding: { namespace: 'acme' },
+      labels: {
+        extra: [{ name: 'risk: security', color: '000000', description: '' }],
+      },
+    }),
+  );
+  const out = join(mkdtempSync(join(tmpdir(), 'bodies-')), 'nested');
+  const result = run(
+    ['plan', fixture('conforming-spec.md'), '--bodies', out],
+    cwd,
+  );
+  assert.equal(result.status, 0, result.stderr);
+  const expected = fileURLToPath(new URL('expected/', import.meta.url));
+  assert.deepEqual(readdirSync(out).sort(), readdirSync(expected).sort());
+  for (const name of readdirSync(expected))
+    assert.equal(
+      readFileSync(join(out, name), 'utf8'),
+      readFileSync(join(expected, name), 'utf8'),
+      name,
+    );
+});
+
+test('plan --bodies refuses a directory inside a git checkout', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'spec-'));
+  mkdirSync(join(cwd, '.git'));
+  const result = run(
+    ['plan', fixture('conforming-spec.md'), '--bodies', 'bodies'],
+    cwd,
+  );
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stderr,
+    /^--bodies must name a directory outside any git checkout\n/,
+  );
+});
+
+test('plan fails on a rendered-body rule after the structural rules pass', () => {
+  const cwd = repository([...BASE, 'risk: security']);
+  const spec = join(cwd, 'spec.md');
+  writeFileSync(
+    spec,
+    readFileSync(fixture('conforming-spec.md'), 'utf8').replace(
+      '`NoteId` is a validated branded string.',
+      `\`NoteId\` is a validated branded string. ${'x'.repeat(70_000)}`,
+    ),
+  );
+  const result = run(['plan', spec], cwd);
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stderr,
+    /^\[body-size\] P0\.2: the body is \d+ characters/,
+  );
 });
