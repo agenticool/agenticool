@@ -28,7 +28,6 @@ export const AGENTS_SECTIONS = [
   'workflows',
   'binding',
   'branches',
-  'workflow-names',
 ];
 export const AGENT_LOCAL_FILES = [
   '.claude/worktrees/',
@@ -124,14 +123,6 @@ const templates = (directory) =>
   readdirSync(new URL(`${directory}/`, TEMPLATES))
     .filter((name) => name.endsWith('.yml'))
     .sort();
-
-// The caller workflows that run on pull_request_target, which a workflow-lint
-// policy has to list.
-export const PULL_REQUEST_TARGET = templates('workflows').filter((name) =>
-  readFileSync(new URL(`workflows/${name}`, TEMPLATES), 'utf8').includes(
-    'pull_request_target:',
-  ),
-);
 
 /**
  * Removes the `[mcp_servers.<name>]` tables sync is about to own, with their
@@ -259,18 +250,6 @@ export function renderSync(base = process.cwd()) {
     );
   }
   return files;
-}
-
-/**
- * The `pull_request_target` caller workflows the policy's
- * `workflowLint.pullRequestTarget` does not list yet.
- * @param {string} [base]
- */
-export function unlistedPullRequestTarget(base = process.cwd()) {
-  const listed =
-    loadPolicy(base).workflowLint?.pullRequestTarget ??
-    /** @type {string[]} */ ([]);
-  return PULL_REQUEST_TARGET.filter((name) => !listed.includes(name));
 }
 
 /**

@@ -15,7 +15,6 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { lintWorkflows } from '@agenticool/workflow-lint';
 import { parse } from 'yaml';
 import { renderTemplate } from '../src/index.mjs';
 import { userPolicy } from './helpers.mjs';
@@ -771,37 +770,4 @@ test('without the token secret every job warns and skips the rest of its steps',
         label,
       );
     }
-});
-
-test('rendered caller workflows pass the workflow lint rules', (t) => {
-  const root = mkdtempSync(join(tmpdir(), 'tracker-callers-'));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
-  const directory = join(root, '.github', 'workflows');
-  mkdirSync(directory, { recursive: true });
-  for (const name of [
-    'tracker-issue-states',
-    'tracker-pr-issue-status',
-    'tracker-pr-metadata',
-    'tracker-project-membership',
-  ])
-    writeFileSync(
-      join(directory, `${name}.yml`),
-      renderTemplate(`workflows/${name}.yml`, userPolicy),
-    );
-  const problems = lintWorkflows(directory, {
-    config: {
-      areas: { tracker: 'Tracker' },
-      pullRequestTarget: [
-        'tracker-pr-issue-status.yml',
-        'tracker-pr-metadata.yml',
-      ],
-    },
-    repository: REPOSITORY,
-  }).filter(({ rule }) => rule !== 'node-version');
-  // Callers run no setup-node step of their own, so only the node-version
-  // rule is left out.
-  assert.deepEqual(
-    problems.map(({ file, rule, message }) => `${file} ${rule} ${message}`),
-    [],
-  );
 });

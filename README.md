@@ -14,32 +14,15 @@ Shared, deterministic workflow tooling for GitHub repositories that use Claude C
 | [`@agenticool/spec-parser`](packages/spec-parser) | Specification parsing, pre-flight rules, and issue body rendering |
 | [`@agenticool/spec-to-issues`](packages/spec-to-issues) | Filing and resuming a specification plan as linked issues |
 | [`@agenticool/agents`](packages/agents) | Shared agents and skills, the generator, and the review publisher |
-| [`@agenticool/workflow-lint`](packages/workflow-lint) | GitHub Actions workflow lint rules |
 
-## Reusable workflows
+## Pull request checks
 
-Two workflows in `.github/workflows/` run on this repository's own pull requests and also accept `workflow_call`, so another repository calls them by tag:
+Besides `npm run check`, two workflows in `.github/workflows/` check this repository's own pull requests:
 
 | Workflow | Job and check name |
 | --- | --- |
 | `ci-pr-title.yml` | `check-pr-title`: Check PR title follows Conventional Commits |
 | `ci-secret-scan.yml` | `scan-secrets`: Scan commits for secrets, with Gitleaks |
-
-```yaml
-on:
-  pull_request:
-    types: [opened, edited, synchronize]
-
-jobs:
-  check-pr-title:
-    name: Check PR title
-    uses: agenticool/agenticool/.github/workflows/ci-pr-title.yml@<tag>
-  scan-secrets:
-    name: Scan secrets
-    permissions:
-      contents: read
-    uses: agenticool/agenticool/.github/workflows/ci-secret-scan.yml@<tag>
-```
 
 The secret scan runs a pinned Gitleaks CLI release, checked against its SHA-256, and needs no secrets or license key. On a pull request it scans the pull request's commits; on a push it scans the pushed range; on a manual run or a new branch it scans the full history.
 

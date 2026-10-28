@@ -33,9 +33,6 @@
     },
     "packages/agents": {
       "component": "agents"
-    },
-    "packages/workflow-lint": {
-      "component": "workflow-lint"
     }
   }
 }

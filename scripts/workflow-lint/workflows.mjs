@@ -10,7 +10,9 @@ import { parseDocument } from 'yaml';
  *   exclude?: string[],
  *   pullRequestTarget?: string[],
  *   requiredChecks?: { file: string, job: string, name: string }[],
- * }} Config The `workflowLint` section of `.agents/policy.json`.
+ * }} Config Workflow area prefixes, vendor workflow files the naming rules
+ *   skip, the workflows that run on `pull_request_target`, and the jobs a
+ *   branch ruleset requires as status checks.
  * @typedef {{
  *   file: string,
  *   path: string,

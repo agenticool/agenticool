@@ -42,18 +42,6 @@ const withNewFields = (policy, token) => ({
   labels: {
     extra: [{ name: 'area: infra', color: '0e8a16', description: 'Infra' }],
   },
-  workflowLint: {
-    areas: { ci: 'CI', tracker: 'Tracker' },
-    exclude: ['vendor-sync.yml'],
-    pullRequestTarget: ['tracker-pr-metadata.yml'],
-    requiredChecks: [
-      {
-        file: 'ci-pr-title.yml',
-        job: 'check-pr-title',
-        name: 'Check PR title follows Conventional Commits',
-      },
-    ],
-  },
   local: { roles: '.agents/local/roles', workflows: '.agents/local/workflows' },
 });
 
@@ -75,7 +63,6 @@ test('both consumer policies validate as they are and with the new fields', () =
       'supported',
       'implementationEffort',
       'labels.extra',
-      'workflowLint',
       'local',
     ];
     validatePolicy(full, { sections });
@@ -153,6 +140,11 @@ test('the schema rejects unknown keys at every level', () => {
   const cases = [
     ['root', (copy) => (copy.extra = 1), /root has unknown key extra/],
     [
+      'workflowLint',
+      (copy) => (copy.workflowLint = {}),
+      /root has unknown key workflowLint/,
+    ],
+    [
       'binding',
       (copy) => (copy.binding.repo = 'x'),
       /binding has unknown key repo/,
@@ -176,16 +168,6 @@ test('the schema rejects unknown keys at every level', () => {
       'label',
       (copy) => (copy.labels.extra[0].default = true),
       /labels.extra\[0\] has unknown key default/,
-    ],
-    [
-      'workflowLint',
-      (copy) => (copy.workflowLint.vendor = []),
-      /workflowLint has unknown key vendor/,
-    ],
-    [
-      'required check',
-      (copy) => (copy.workflowLint.requiredChecks[0].matrix = false),
-      /workflowLint.requiredChecks\[0\] has unknown key matrix/,
     ],
     [
       'local',
@@ -257,10 +239,6 @@ test('the schema rejects values of the wrong shape', () => {
     [
       { labels: { extra: [{ name: 'x', color: 'red', description: '' }] } },
       /labels.extra\[0\].color must match/,
-    ],
-    [
-      { workflowLint: { requiredChecks: [{ file: 'ci.yml', job: 'test' }] } },
-      /workflowLint.requiredChecks\[0\] is missing name/,
     ],
     [
       { implementationEffort: { default: 'medium' } },

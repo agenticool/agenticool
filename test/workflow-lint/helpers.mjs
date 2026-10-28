@@ -1,22 +1,26 @@
-import {
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { lintWorkflows } from '@agenticool/workflow-lint';
+import { lintWorkflows } from '../../scripts/workflow-lint/lint.mjs';
 
 // A repository whose workflows pass every rule. Each test copies it and
 // changes only the files the case needs.
 export const CLEAN = fileURLToPath(new URL('fixtures/clean', import.meta.url));
-export const CONFIG = JSON.parse(
-  readFileSync(join(CLEAN, '.agents/policy.json'), 'utf8'),
-).workflowLint;
+/** @type {import('../../scripts/workflow-lint/workflows.mjs').Config} */
+export const CONFIG = {
+  areas: { ci: 'CI', release: 'Release', tracker: 'Tracker' },
+  exclude: ['vendor.yml'],
+  pullRequestTarget: ['tracker-pr-metadata.yml'],
+  requiredChecks: [
+    { file: 'ci-checks.yml', job: 'run-checks', name: 'Run checks' },
+    {
+      file: 'ci-pr-title.yml',
+      job: 'check-pr-title',
+      name: 'Check PR title follows Conventional Commits',
+    },
+  ],
+};
 export const W = '.github/workflows/';
 
 /**
@@ -43,7 +47,7 @@ export function repo(changes = {}) {
  * (or the message alone) for each violation of `rule`.
  * @param {string} rule
  * @param {Record<string, string | null>} [changes]
- * @param {{ config?: import('../src/workflows.mjs').Config, repository?: string }} [options]
+ * @param {{ config?: import('../../scripts/workflow-lint/workflows.mjs').Config, repository?: string }} [options]
  */
 export function lint(
   rule,

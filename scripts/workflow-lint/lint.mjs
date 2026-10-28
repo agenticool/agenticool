@@ -23,8 +23,8 @@ export const rules = [
 /**
  * Runs every rule over a workflow directory, `<root>/.github/workflows`.
  * @param {string} dir
- * @param {{ config?: Config, repository?: string }} [options] `config` is the
- *   policy's `workflowLint` section; `repository` is `binding.repository`.
+ * @param {{ config?: Config, repository?: string }} [options] `repository`
+ *   is the `owner/name` the workflows run in.
  * @returns {Violation[]}
  */
 export function lintWorkflows(dir, options) {
