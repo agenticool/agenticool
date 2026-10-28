@@ -35,19 +35,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Without the secret the job succeeds with a warning, so a repository
+      # can install the workflows before its project and token exist. A set
+      # but invalid token still fails in the command steps.
+      - name: Check the project token
+        id: token
+        env:
+          TOKEN_ENV: ${{ inputs.token_env }}
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+        run: |
+          if [ -n "$PROJECT_TOKEN" ]; then
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::$TOKEN_ENV secret is not set; skipping"
+          fi
       # Execute trusted default-branch code for fork PRs too.
       - name: Check out the default branch
+        if: steps.token.outputs.set == 'true'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
       - name: Set up Node.js
+        if: steps.token.outputs.set == 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .tool-versions
       - name: Install dependencies
+        if: steps.token.outputs.set == 'true'
         run: npm ci
       - name: Update project status of closing issues
+        if: steps.token.outputs.set == 'true'
         env:
           TOKEN_ENV: ${{ inputs.token_env }}
           PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
