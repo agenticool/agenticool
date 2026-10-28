@@ -15,6 +15,9 @@ export const rule = 'pull-request-target';
 // Expressions that name the pull request's head or merge commit, branch, or ref.
 const PR_HEAD =
   /github\.event\.pull_request\.(?:head\.|merge_commit_sha)|github\.head_ref|GITHUB_HEAD_REF|refs\/pull\/|pull\/[^/\n]*\/(?:head|merge)\b/;
+// An agenticool reusable workflow at a full commit SHA or a release tag.
+const AGENTICOOL_REUSABLE =
+  /^agenticool\/agenticool\/\.github\/workflows\/_[a-z0-9-]+\.ya?ml@(?:[0-9a-f]{40}|[a-z0-9-]+-v\d+\.\d+\.\d+)$/;
 // Expressions that name the base repository.
 const BASE_REPOSITORY = new Set([
   'github.repository',
@@ -55,7 +58,10 @@ function untrustedCode(definition, repository) {
     const fail = (message) => problems.push({ job, message });
     // A called workflow runs with this event's token and secrets, but its
     // own trigger is `workflow_call`, so its steps are not checked here.
-    if (typeof body?.uses === 'string')
+    // agenticool's own reusable workflows, pinned at a commit or release tag,
+    // check out only the caller's default branch, which the tracker tests
+    // enforce, so calling them is safe.
+    if (typeof body?.uses === 'string' && !AGENTICOOL_REUSABLE.test(body.uses))
       fail(`calls a reusable workflow: ${body.uses}`);
     /** @type {Record<string, any>[]} */ (body?.steps ?? []).forEach(
       (step, index) => {

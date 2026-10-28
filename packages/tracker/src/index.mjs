@@ -49,3 +49,5 @@ export {
   releasedComponents,
   releaseLabels,
 } from './release-please.mjs';
+export { configuration, main, SECTIONS, USAGE } from './cli.mjs';
+export { renderTemplate, TEMPLATES } from './templates.mjs';

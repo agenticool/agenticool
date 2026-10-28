@@ -25,7 +25,7 @@ The reusable PR-title and secret-scan workflows live at the monorepo root; see [
 | `timeouts` | Every job that runs steps sets `timeout-minutes` to a positive whole number; a job that calls a reusable workflow cannot set it |
 | `checkout-credentials` | Every `actions/checkout` step sets `persist-credentials: false`, or has `# persist-credentials: kept for "<later step name>"` directly above it, naming a later step in the same job |
 | `node-version` | `.tool-versions` pins `nodejs <major>.<minor>.<patch>`. Every `actions/setup-node` step, in workflows and in `.github/actions/*/action.yml` composite actions, reads `node-version-file: .tool-versions`, sets no `node-version`, and runs after a checkout of the repository root. No file sets `node-version` anywhere, and at least one setup-node step exists |
-| `pull-request-target` | Exactly the workflows in `pullRequestTarget` run on `pull_request_target`. Their jobs call no reusable workflow, check out neither the pull request head nor a repository other than the base (`binding.repository` or a `github.repository` expression), and neither `git fetch` the head nor run `gh pr checkout` |
+| `pull-request-target` | Exactly the workflows in `pullRequestTarget` run on `pull_request_target`. Their jobs call no reusable workflow other than an agenticool one (`agenticool/agenticool/.github/workflows/_<name>.yml`) pinned at a full commit SHA or a release tag such as `tracker-v1.2.3`, whose jobs check out only the caller's default branch. They check out neither the pull request head nor a repository other than the base (`binding.repository` or a `github.repository` expression), and neither `git fetch` the head nor run `gh pr checkout` |
 
 ## Config keys
 

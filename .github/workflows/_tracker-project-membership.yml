@@ -1,0 +1,95 @@
+# Adds one issue to the project and triages it, or adds every open issue
+# missing from the project when `issue` is 0. Callers start from
+# templates/workflows/tracker-project-membership.yml in @agenticool/tracker.
+# The steps run the agenticool-tracker that the caller's package-lock.json
+# installs, so the caller's default branch must list @agenticool/tracker in
+# package.json.
+
+name: 'Tracker: add issues to the project (reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      token_env:
+        description: Secret holding the Projects token, the same name as binding.tokenEnv
+        type: string
+        required: true
+      issue:
+        description: Issue to add and triage; 0 adds every open issue missing from the project
+        type: number
+        default: 0
+      dry_run:
+        description: Preview without writes
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  add-to-project:
+    name: Add the issue to the project
+    if: inputs.issue != 0
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      TOKEN_ENV: ${{ inputs.token_env }}
+    steps:
+      # Execute trusted default-branch code.
+      - name: Check out the default branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .tool-versions
+      - name: Install dependencies
+        run: npm ci
+      - name: Add the issue to the project
+        env:
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          CONTENT_TYPE: 'issue'
+          CONTENT_NUMBER: ${{ inputs.issue }}
+        run: |
+          export "$TOKEN_ENV=$PROJECT_TOKEN"
+          npx --no agenticool-tracker membership
+      # The item exists now, so this is the issue's first triage run.
+      - name: Triage the new issue
+        env:
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          ISSUE_NUMBER: ${{ inputs.issue }}
+        run: |
+          export "$TOKEN_ENV=$PROJECT_TOKEN"
+          npx --no agenticool-tracker triage --issue "$ISSUE_NUMBER"
+
+  add-missing-issues:
+    name: Add missing open issues to the project
+    if: inputs.issue == 0
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      TOKEN_ENV: ${{ inputs.token_env }}
+    steps:
+      # Execute trusted default-branch code.
+      - name: Check out the default branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .tool-versions
+      - name: Install dependencies
+        run: npm ci
+      - name: Add missing open issues to the project
+        env:
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          SWEEP: 'true'
+        run: |
+          export "$TOKEN_ENV=$PROJECT_TOKEN"
+          npx --no agenticool-tracker membership
