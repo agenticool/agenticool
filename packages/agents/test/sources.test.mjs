@@ -829,6 +829,14 @@ test('specification filing runs the spec commands and asks the triager for indep
       path,
     );
     assert.match(resume, /never spawn the triager again/, path);
+    // A filing that began stays tied to its state directory, so a changed
+    // specification stops for a person instead of re-planning.
+    assert.match(
+      resume,
+      /specification or the plan changed, report its message and stop/,
+      path,
+    );
+    assert.doesNotMatch(resume, /steps 1 to 3/, path);
     assert.ok(section(skill, 'Verify and return'), path);
   }
   assert.match(

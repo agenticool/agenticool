@@ -51,7 +51,7 @@ After the user confirms, run `npx agenticool-spec confirm <digest> --state <dir>
 
 ## Resume
 
-A request to resume, or to file a specification whose state directory already holds `state.json`, runs `npx agenticool-spec resume <spec> --state <dir>`. It reuses the groups and assignee recorded in the state, so never spawn the triager again. When it refuses because the specification or the plan changed, run steps 1 to 3 again for a new confirmation.
+A request to resume, or to file a specification whose state directory already holds `state.json`, runs `npx agenticool-spec resume <spec> --state <dir>`. It reuses the groups and assignee recorded in the state, so never spawn the triager again. When it refuses because the specification or the plan changed, report its message and stop: filing a changed specification after filing began needs a person's decision, because the filed issues stay and a new filing needs a new state directory.
 
 ## Verify and return
 
