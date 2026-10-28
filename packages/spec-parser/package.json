@@ -8,8 +8,14 @@
     ".": "./src/index.mjs"
   },
   "files": [
-    "src"
+    "src",
+    "bin",
+    "spec-slicing.md",
+    "fixtures"
   ],
+  "bin": {
+    "agenticool-spec": "bin/agenticool-spec.mjs"
+  },
   "engines": {
     "node": ">=24.2"
   },
@@ -21,5 +27,9 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "dependencies": {
+    "@agenticool/cli": "^0.0.0",
+    "@agenticool/policy": "^0.0.0"
   }
 }
