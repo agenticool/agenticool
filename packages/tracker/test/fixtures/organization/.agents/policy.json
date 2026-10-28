@@ -1,0 +1,12 @@
+{
+  "binding": {
+    "repository": "example-org/gadgets",
+    "project": {
+      "owner": "example-org",
+      "ownerType": "organization",
+      "number": 3,
+      "name": "Gadgets board"
+    },
+    "tokenEnv": "GADGETS_PROJECT_TOKEN"
+  }
+}
