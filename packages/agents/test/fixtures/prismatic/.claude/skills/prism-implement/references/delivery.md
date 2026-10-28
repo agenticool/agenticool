@@ -10,7 +10,7 @@ The assignment from prism-implement's Dispatch supplies the target, trunk and ba
 
 - When the loaded `AGENTS.md` may come from a stale checkout, follow `git show origin/main:AGENTS.md` instead.
 - Read what the inputs did not supply through REST: `gh api repos/samlevin/prismatic/issues/<N>` for the body, plus `/comments`, `/parent` (404 when there is none), `/dependencies/blocked_by`, and `/sub_issues`. An issue with native sub-issues is a container: follow [queue.md](queue.md) instead, or return `BLOCKED: container` when you are an isolated implementer.
-- Open `CONTRIBUTING.md` only when the loaded instructions lack a check command or rule you need, or when the task changes them. Read `.github/pull_request_template.md` when you open the PR.
+- Open `AGENTS.md` only when the loaded instructions lack a check command or rule you need, or when the task changes them. Read `.github/pull_request_template.md` when you open the PR.
 
 ## Gate
 

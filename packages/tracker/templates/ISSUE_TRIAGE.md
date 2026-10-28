@@ -22,6 +22,22 @@ Deadlines and blocking dependencies can raise priority.
 
 Split multiple logical outcomes into native sub-issues, even when small. Size alone does not create an epic. M and larger work can use stacked PRs for reviewable layers; retain the production-code size guidance in `{{docs.workflow}}`.
 
+## Status
+
+| Status | Meaning | Set by |
+| --- | --- | --- |
+| Inbox, or no Status | New and not triaged yet; triage treats both the same | The membership workflow, when the issue opens |
+| Ready | Triaged: Priority, Size, and exactly one severity label are filled in. Delivery still needs clear scope, acceptance criteria, validation, and satisfied dependencies | Triage, which moves an Inbox issue here; automation, when an issue in Done reopens |
+| In progress | Someone is working on it | Whoever claims the issue, person or agent |
+| In review | A PR that closes it is open | The PR issue status workflow, when the PR opens |
+| Done | Closed | Automation, whenever the issue closes |
+
+An agent sets only In progress, when it claims an issue before coding. It never sets Status when it files an issue, and never sets Inbox, Ready, In review, or Done.
+
+## Dependencies
+
+When one issue has to wait on another, mark it with GitHub's blocked-by relationship on the issue that waits. Leaves that share files or contracts, or where one uses the other's output, get a blocked-by edge even when either order works, and edges never form a cycle. A blocked issue waits for its blocker to merge, unless its branch stacks on the blocker's open, ready-for-review PR, as [leaf delivery](.agents/skills/{{prefix}}implement/references/delivery.md) describes.
+
 ## Labels
 
 Use plain descriptive issue titles without `[Type]:` prefixes. Labels are canonical for classification.

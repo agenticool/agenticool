@@ -28,6 +28,7 @@ export const AGENTS_SECTIONS = [
   'workflows',
   'binding',
   'branches',
+  'workflow-names',
 ];
 export const AGENT_LOCAL_FILES = [
   '.claude/worktrees/',
