@@ -7,7 +7,12 @@
   "exports": {
     ".": "./src/index.mjs"
   },
+  "bin": {
+    "agenticool-agents": "./bin/agenticool-agents.mjs"
+  },
   "files": [
+    "bin",
+    "sources",
     "src"
   ],
   "engines": {
@@ -21,5 +26,11 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "dependencies": {
+    "@agenticool/cli": "^0.0.0",
+    "@agenticool/github": "^0.0.0",
+    "@agenticool/policy": "^0.0.0",
+    "yaml": "^2.9.1"
   }
 }
