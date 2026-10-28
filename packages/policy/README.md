@@ -47,7 +47,7 @@ The schema rejects unknown keys and wrong types everywhere, but requires no sect
 | `supported.<tool>` | `{ description?, modelIdPattern?, models: { <model>: [efforts] } }` | Models and efforts each tool accepts |
 | `implementationEffort` | `{ default, automaticMaximum, maximumTransitions, rules, assessmentOrder?, blockers?, nonTriggers? }` | The effort rubric; each rule lists the criteria it `requires` |
 | `labels.extra` | `[{ name, color, description }]` | Repository-only labels merged over the base catalog |
-| `workflowLint` | `{ areas?, exclude?, pullRequestTarget? }` | Workflow area prefixes to name prefixes, vendor workflow files to skip, and workflows allowed to run on `pull_request_target` |
+| `workflowLint` | `{ areas?, exclude?, pullRequestTarget?, requiredChecks? }` | Workflow area prefixes to name prefixes, vendor workflow files the naming rules skip, the workflows that run on `pull_request_target`, and the `{ file, job, name }` jobs a branch ruleset requires |
 | `local` | `{ roles, workflows }` | Repository-only agent sources; default `.agents/local/roles` and `.agents/local/workflows` |
 
 `$schema` and `description` are allowed at the top level.

@@ -173,6 +173,20 @@
         "pullRequestTarget": {
           "description": "Workflow files allowed to run on pull_request_target.",
           "$ref": "#/$defs/strings"
+        },
+        "requiredChecks": {
+          "description": "Jobs a branch ruleset requires as status checks: the job in each workflow file must keep its name and run without a matrix.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "job", "name"],
+            "properties": {
+              "file": { "type": "string", "minLength": 1 },
+              "job": { "type": "string", "minLength": 1 },
+              "name": { "type": "string", "minLength": 1 }
+            }
+          }
         }
       }
     },

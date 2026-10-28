@@ -16,6 +16,35 @@ Shared, deterministic workflow tooling for GitHub repositories that use Claude C
 | [`@agenticool/agents`](packages/agents) | Shared agents and skills, the generator, and the review publisher |
 | [`@agenticool/workflow-lint`](packages/workflow-lint) | GitHub Actions workflow lint rules |
 
+## Reusable workflows
+
+Two workflows in `.github/workflows/` run on this repository's own pull requests and also accept `workflow_call`, so another repository calls them by tag:
+
+| Workflow | Job and check name |
+| --- | --- |
+| `ci-pr-title.yml` | `check-pr-title`: Check PR title follows Conventional Commits |
+| `ci-secret-scan.yml` | `scan-secrets`: Scan commits for secrets, with Gitleaks |
+
+```yaml
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-pr-title:
+    name: Check PR title
+    uses: agenticool/agenticool/.github/workflows/ci-pr-title.yml@<tag>
+  scan-secrets:
+    name: Scan secrets
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: agenticool/agenticool/.github/workflows/ci-secret-scan.yml@<tag>
+    secrets: inherit
+```
+
+The secret scan reads the `GITLEAKS_LICENSE` secret, which Gitleaks needs only in organization-owned repositories.
+
 ## Development
 
 Node.js 24 (see `.tool-versions`) and npm.

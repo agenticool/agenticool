@@ -1,0 +1,17 @@
+name: 'Release: tags'
+run-name: 'Release: tags for ${{ github.sha }}'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  push-tags:
+    name: Push release tags
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # persist-credentials: kept for "Push tags"
+      - name: Check out repository
+        uses: actions/checkout@0000000000000000000000000000000000000000 # v4
+      - name: Push tags
+        run: git push --tags

@@ -1,0 +1,20 @@
+{
+  "binding": { "repository": "octo/widgets" },
+  "workflowLint": {
+    "areas": { "ci": "CI", "release": "Release", "tracker": "Tracker" },
+    "exclude": ["vendor.yml"],
+    "pullRequestTarget": ["tracker-pr-metadata.yml"],
+    "requiredChecks": [
+      {
+        "file": "ci-checks.yml",
+        "job": "run-checks",
+        "name": "Run checks"
+      },
+      {
+        "file": "ci-pr-title.yml",
+        "job": "check-pr-title",
+        "name": "Check PR title follows Conventional Commits"
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+name: Report
+description: Print a report.
+runs:
+  using: composite
+  steps:
+    - name: Print report
+      shell: bash
+      run: echo report
