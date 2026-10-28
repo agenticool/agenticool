@@ -106,9 +106,62 @@ test('help exits 0 and a usage error exits 1', () => {
     help.stdout,
     /^Usage: agenticool-spec plan <spec> \[--bodies <dir>\] \[--json <file>\]/,
   );
-  const usage = run(['file', 'spec.md']);
+  const usage = run(['list', 'spec.md']);
   assert.equal(usage.status, 1);
   assert.match(usage.stderr, /^Expected plan <spec>\n\nUsage:/);
+});
+
+test('plan --state records the groups and assignee that confirm, dispatched to spec-to-issues, accepts', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'state-'));
+  const state = join(directory, 'notes');
+  const groups = join(directory, 'groups.json');
+  writeFileSync(
+    groups,
+    JSON.stringify({ 'Phase 0': [['P0.1', 'P0.3'], ['P0.2']] }),
+  );
+  const planned = run([
+    'plan',
+    fixture('conforming-spec.md'),
+    '--state',
+    state,
+    '--groups',
+    groups,
+    '--assignee',
+    'sam',
+  ]);
+  assert.equal(planned.status, 0, planned.stderr);
+  const digest = /\nPlan digest: ([0-9a-f]{64})\n$/.exec(planned.stdout)?.[1];
+  assert.ok(digest);
+  assert.match(
+    planned.stdout,
+    /\n\nIndependence groups:\n {2}Phase 0: g1 P0\.1 P0\.3; g2 P0\.2\n {2}Phase 1: none\n {2}Phase 2: none\nTotals: 2 containers, 3 epics, 9 leaves\.\nAssignee: sam\nState: .*notes\nPlan digest: /,
+  );
+  const record = JSON.parse(readFileSync(join(state, 'plan.json'), 'utf8'));
+  assert.equal(record.digest, digest);
+  assert.equal(record.assignee, 'sam');
+  assert.equal(record.confirmed, null);
+
+  const wrong = run(['confirm', 'abc', '--state', state]);
+  assert.equal(wrong.status, 1);
+  assert.match(wrong.stderr, /^abc is not the recorded plan digest/);
+  const confirmed = run(['confirm', digest, '--state', state]);
+  assert.equal(confirmed.status, 0, confirmed.stderr);
+  assert.equal(confirmed.stdout, `Confirmed plan ${digest}.\n`);
+  assert.equal(
+    JSON.parse(readFileSync(join(state, 'plan.json'), 'utf8')).confirmed,
+    digest,
+  );
+  const usage = run(['file', 'spec.md']);
+  assert.equal(usage.status, 1);
+  assert.match(usage.stderr, /^--state <dir> is required/);
+  const loose = run([
+    'plan',
+    fixture('conforming-spec.md'),
+    '--assignee',
+    'sam',
+  ]);
+  assert.equal(loose.status, 1);
+  assert.match(loose.stderr, /^--groups and --assignee need --state/);
 });
 
 test('plan --bodies writes every rendered body, with the policy prefix', () => {
