@@ -55,8 +55,8 @@ const bySection = (a, b) => {
 const within = (section, ancestor) => section.startsWith(`${ancestor}.`);
 
 /**
- * The independence record the groups step can append to an epic, with each
- * direct leaf child in a group of its own.
+ * The independence record the groups step can append to the root or an epic,
+ * with each leaf it can name in a group of its own.
  * @param {number} leaves
  * @param {string} prefix
  */
@@ -403,14 +403,15 @@ export function loadIssueForms(base = process.cwd()) {
  * @param {string} body
  * @param {FormField[]} fields
  * @param {boolean} isEpic
+ * @param {boolean} grouped whether the groups step can append a record
  */
-function headingProblem(body, fields, isEpic) {
+function headingProblem(body, fields, isEpic, grouped) {
   const bodyLines = body.split('\n');
   const fenced = fencedLines(bodyLines);
   const headings = bodyLines
     .filter((line, index) => !fenced[index] && /^### /.test(line))
     .map((line) => line.slice(4).trim());
-  if (isEpic && headings.at(-1) === 'Independence groups') headings.pop();
+  if (grouped && headings.at(-1) === 'Independence groups') headings.pop();
   if (isEpic && headings.at(-1) === 'Contracts') headings.pop();
   /**
    * @param {FormField} field
@@ -444,19 +445,25 @@ function headingProblem(body, fields, isEpic) {
  * @returns {string[]}
  */
 export function checkBodies(plan, bodies, { forms, prefix = '' }) {
+  // The root's plan-wide record can name every leaf; an epic's, its own.
+  /** @param {Plan['items'][number]} item */
+  const groupable = (item) =>
+    item.key === 'Plan' || item.kind === 'epic'
+      ? plan.items.filter(
+          (other) =>
+            other.kind === 'leaf' &&
+            (item.key === 'Plan' || other.parent === item.key),
+        ).length
+      : 0;
   const size = plan.items.flatMap((item) => {
-    const leaves = plan.items.filter(
-      (other) => other.kind === 'leaf' && other.parent === item.key,
-    ).length;
+    const leaves = groupable(item);
     const filled =
       bodies[item.key].replace(PLACEHOLDER, FILLED) +
-      (item.kind === 'epic' && leaves >= 2
-        ? largestRecord(leaves, prefix)
-        : '');
+      (leaves >= 2 ? largestRecord(leaves, prefix) : '');
     return filled.length < BODY_LIMIT
       ? []
       : [
-          `[body-size] ${item.key}: the body is ${filled.length} characters with placeholders filled${item.kind === 'epic' && leaves >= 2 ? ' and the largest independence record' : ''}; it must stay under ${BODY_LIMIT}.`,
+          `[body-size] ${item.key}: the body is ${filled.length} characters with placeholders filled${leaves >= 2 ? ' and the largest independence record' : ''}; it must stay under ${BODY_LIMIT}.`,
         ];
   });
   if (size.length) return size;
@@ -471,6 +478,7 @@ export function checkBodies(plan, bodies, { forms, prefix = '' }) {
       bodies[item.key],
       forms[form],
       item.kind === 'epic',
+      item.key === 'Plan' || item.kind === 'epic',
     );
     return problem
       ? [`[template-headings] ${item.key}: ${problem} in ${form}.yml.`]

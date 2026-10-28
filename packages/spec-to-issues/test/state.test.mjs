@@ -22,6 +22,7 @@ const bodies = render(plan, text);
 test('recordPlan records the plan, groups, and assignee and prints them with the digest', () => {
   const state = join(temporary(), 'nested', 'state');
   const groups = {
+    Plan: [['P0.3', 'P1.3'], ['P2.2']],
     'Phase 2': [['P2.1'], ['P2.2']],
     'Phase 0': [['P0.1', 'P0.3'], ['P0.2']],
   };
@@ -46,7 +47,11 @@ test('recordPlan records the plan, groups, and assignee and prints them with the
     digest,
     confirmationDigest({
       planSha256,
-      groups: { 'Phase 0': groups['Phase 0'], 'Phase 2': groups['Phase 2'] },
+      groups: {
+        'Phase 0': groups['Phase 0'],
+        'Phase 2': groups['Phase 2'],
+        Plan: groups.Plan,
+      },
       assignee: 'sam',
     }),
   );
@@ -73,6 +78,7 @@ test('recordPlan records the plan, groups, and assignee and prints them with the
       [
         '',
         'Independence groups:',
+        '  Plan: g1 P0.3 P1.3; g2 P2.2',
         '  Phase 0: g1 P0.1 P0.3; g2 P0.2',
         '  Phase 1: none',
         '  Phase 2: g1 P2.1; g2 P2.2',
@@ -85,7 +91,7 @@ test('recordPlan records the plan, groups, and assignee and prints them with the
   );
   assert.match(
     recordPlan(state, { spec: SPEC, text, plan, bodies }).output,
-    /Phase 0: none\n.*\nAssignee: none\n/s,
+    /Plan: none\n {2}Phase 0: none\n.*\nAssignee: none\n/s,
   );
   assert.equal(readPlan(state)?.confirmed, null);
   confirmPlan(

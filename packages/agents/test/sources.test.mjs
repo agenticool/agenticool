@@ -748,7 +748,7 @@ test('queue recomputes and main reads only fixed results until a blocker needs a
   }
 });
 
-test('specification filing runs the spec commands and asks the triager for independence groups only', () => {
+test('specification filing runs the spec commands and asks the triager for plan-wide independence groups only', () => {
   const files = rendered;
   for (const path of inBoth('spec-to-issues/SKILL.md')) {
     const skill = files.get(path);
@@ -781,7 +781,8 @@ test('specification filing runs the spec commands and asks the triager for indep
       /^Only the triager forms independence groups, by the definition in `\.agents\/independence-groups\.md`\./m,
       path,
     );
-    assert.match(groups, /two or more direct leaf children/, path);
+    assert.match(groups, /groups the whole plan at once/, path);
+    assert.match(groups, /fewer than two leaves/, path);
     assert.match(
       groups,
       /`npx agenticool-spec plan <spec> --bodies <scratch>\/bodies --json <scratch>\/plan\.json`/,
@@ -795,17 +796,17 @@ test('specification filing runs the spec commands and asks the triager for indep
     );
     assert.match(
       groups,
-      /`dependency judgment: independence groups only; metadata comes from the specification`/,
+      /`dependency judgment: plan-wide independence groups only, container ref Plan; metadata comes from the specification`/,
       path,
     );
     assert.match(
       groups,
-      /Apply only its `GROUPS` lines and ignore its `EDGES` line/,
+      /Apply only its `Plan \| GROUPS` line and ignore its `EDGES` line/,
       path,
     );
     assert.match(
       groups,
-      /\{ "Phase 0": \[\["P0\.1", "P0\.3"\], \["P0\.2"\]\] \}/,
+      /\{ "Plan": \[\["P0\.1", "P1\.2"\], \["P0\.2", "P2\.1"\]\] \}/,
       path,
     );
     const print = section(skill, '3. Print the plan and wait');

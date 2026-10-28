@@ -349,9 +349,28 @@ function parallelMetadata(nodes, rows, merged, namespace) {
       }
     return result;
   };
+  /**
+   * The leaves under a container: its childless descendants. `seen` stops
+   * at a native sub-issue cycle.
+   * @param {number} n
+   * @param {Set<number>} [result]
+   * @param {Set<number>} [seen]
+   */
+  const subtreeLeaves = (n, result = new Set(), seen = new Set([n])) => {
+    for (const child of nodes.get(n)?.children ?? []) {
+      if (seen.has(child.number)) continue;
+      seen.add(child.number);
+      if (nodes.get(child.number)?.children?.length)
+        subtreeLeaves(child.number, result, seen);
+      else result.add(child.number);
+    }
+    return result;
+  };
+  for (const row of rows) row.groups = [];
   for (const [container, node] of nodes) {
     const matches = [...(node.issue?.body ?? '').matchAll(record)];
     if (matches.length !== 1) continue;
+    const leaves = subtreeLeaves(container);
     const groups = new Map();
     let valid = true;
     for (const [index, line] of matches[0][1]
@@ -367,13 +386,7 @@ function parallelMetadata(nodes, rows, merged, namespace) {
       }
       for (const number of match[2].matchAll(/#(\d+)/g)) {
         const n = Number(number[1]);
-        if (
-          groups.has(n) ||
-          !node.children?.some((child) => child.number === n) ||
-          nodes.get(n)?.children?.length ||
-          !byNumber.has(n)
-        )
-          valid = false;
+        if (groups.has(n) || !leaves.has(n) || !byNumber.has(n)) valid = false;
         groups.set(n, `${container}/${match[1] ?? `g${index + 1}`}`);
       }
     }
@@ -396,7 +409,7 @@ function parallelMetadata(nodes, rows, merged, namespace) {
           valid = false;
       }
     if (!valid) continue;
-    for (const [n, group] of groups) byNumber.get(n).group = group;
+    for (const [n, group] of groups) byNumber.get(n).groups.push(group);
   }
   /**
    * @param {string[]} a
@@ -410,26 +423,35 @@ function parallelMetadata(nodes, rows, merged, namespace) {
         return l.startsWith(r) || r.startsWith(l);
       }),
     );
+  /**
+   * The other leaf's group in a record that puts the two leaves in different
+   * groups, when one does.
+   * @param {string[]} mine
+   * @param {string[]} theirs
+   */
+  const apart = (mine, theirs) =>
+    theirs.find((group) =>
+      mine.some(
+        (own) => own.split('/')[0] === group.split('/')[0] && own !== group,
+      ),
+    );
   for (const row of rows) {
     row.parallelWith = [];
     if (
       row.state !== 'ready' ||
       row.size !== 'M' ||
-      !row.group ||
+      !row.groups?.length ||
       !row.ownership?.complete
     )
       continue;
     for (const other of rows) {
-      if (
-        other.issue === row.issue ||
-        other.state !== 'ready' ||
-        other.size !== 'M' ||
-        !other.ownership?.complete ||
-        !other.group ||
-        row.group.split('/')[0] !== other.group.split('/')[0] ||
-        row.group === other.group
-      )
-        continue;
+      const group =
+        other.issue !== row.issue &&
+        other.state === 'ready' &&
+        other.size === 'M' &&
+        other.ownership?.complete &&
+        apart(row.groups, other.groups ?? []);
+      if (!group) continue;
       if (
         !overlap(row.ownership.files, other.ownership.files) &&
         !row.ownership.contracts.some((/** @type {string} */ contract) =>
@@ -438,7 +460,7 @@ function parallelMetadata(nodes, rows, merged, namespace) {
       )
         row.parallelWith.push({
           issue: other.issue,
-          group: other.group,
+          group,
           files: other.ownership.files,
           contracts: other.ownership.contracts,
         });
@@ -602,7 +624,6 @@ export function deliveryQueue(
         effort: effortRecord(node.comments ?? [], policy),
         dependencies: node.dependencies.map((dep) => dep.number),
         ownership: ownershipNotes(node.issue.body),
-        group: 'none',
         base: { branch: 'main', sha: trunk.sha },
         prerequisites: node.dependencies.map((dep) => {
           const candidate = open(dep.number);
@@ -685,7 +706,7 @@ export function nextLeaf(rows) {
 /** @param {any} row */
 export function ledgerLine(row) {
   const decision = row.effort;
-  return `#${row.issue} | ${row.state} | effort=${decision.effort}; rule=${decision.rule}; evidence=${decision.evidence}; reason=${decision.reason} | branch=${row.branch ?? 'none'}; head=${row.head ?? 'none'}; PR=${row.pr ?? 'none'}; project=${row.projectState ?? 'unset'}; size=${row.size ?? 'infer'} | claim=${row.claim?.url ?? 'none'} | dispatch=${JSON.stringify({ base: row.base, dependencies: row.dependencies, prerequisites: row.prerequisites, group: row.group, ownership: row.ownership, parallelWith: row.parallelWith })}${row.blocker ? ` | ${row.blocker}` : ''}`;
+  return `#${row.issue} | ${row.state} | effort=${decision.effort}; rule=${decision.rule}; evidence=${decision.evidence}; reason=${decision.reason} | branch=${row.branch ?? 'none'}; head=${row.head ?? 'none'}; PR=${row.pr ?? 'none'}; project=${row.projectState ?? 'unset'}; size=${row.size ?? 'infer'} | claim=${row.claim?.url ?? 'none'} | dispatch=${JSON.stringify({ base: row.base, dependencies: row.dependencies, prerequisites: row.prerequisites, groups: row.groups, ownership: row.ownership, parallelWith: row.parallelWith })}${row.blocker ? ` | ${row.blocker}` : ''}`;
 }
 
 const CLI = defineCli(

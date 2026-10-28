@@ -247,10 +247,31 @@ test('body-size counts placeholders filled as seven-digit numbers', () => {
   ]);
 });
 
-test('body-size checks the root body too', () => {
+test('body-size checks the root body with the largest plan-wide independence record', () => {
   const { plan, bodies } = build(conforming);
+  // The root's record can name all nine leaves of the plan.
+  const record = `\n\n### Independence groups\n\n<!-- acme-independence-groups -->\n${Array.from(
+    { length: 9 },
+    (_, index) => `- g${index + 1}: #9999999\n`,
+  ).join('')}<!-- /acme-independence-groups -->`;
+  const sized = (/** @type {number} */ length) =>
+    checkBodies(
+      plan,
+      { ...bodies, Plan: 'a'.repeat(length - record.length) },
+      { forms, prefix: PREFIX },
+    ).filter((v) => v.startsWith('[body-size]'));
+  assert.deepEqual(sized(65_535), []);
+  assert.deepEqual(sized(65_536), [
+    '[body-size] Plan: the body is 65536 characters with placeholders filled and the largest independence record; it must stay under 65536.',
+  ]);
+  // A plan with one leaf gets no root record.
+  const tiny = build(ONE_PHASE);
   assert.deepEqual(
-    checkBodies(plan, { ...bodies, Plan: 'a'.repeat(70_000) }, { forms }),
+    checkBodies(
+      tiny.plan,
+      { ...tiny.bodies, Plan: 'a'.repeat(70_000) },
+      { forms },
+    ),
     [
       '[body-size] Plan: the body is 70000 characters with placeholders filled; it must stay under 65536.',
     ],
@@ -325,6 +346,19 @@ test('template-headings compares ### headings outside fenced code with the form'
     ),
     [
       '[template-headings] Phase 0: "Contracts" is not a form label, or is out of order in epic.yml.',
+    ],
+  );
+  assert.deepEqual(
+    check('Plan', `${bodies.Plan}\n\n### Independence groups\n- g1: #1`),
+    [],
+  );
+  assert.deepEqual(
+    check(
+      'Stack P1.1',
+      `${bodies['Stack P1.1']}\n\n### Independence groups\n- g1: #1`,
+    ),
+    [
+      '[template-headings] Stack P1.1: "Independence groups" is not a form label, or is out of order in container.yml.',
     ],
   );
   assert.deepEqual(check('Plan', `${bodies.Plan}\n\n### Contracts\nx`), [

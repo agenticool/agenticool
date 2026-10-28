@@ -58,7 +58,7 @@ const PLACEHOLDER = /@@issue:([^@]+)@@/g;
  */
 
 /**
- * The independence record body-shapes.md appends to an epic, with
+ * The independence record body-shapes.md appends to the root or an epic, with
  * placeholders in place of issue numbers.
  * @param {string[][]} groups
  * @param {string} agentPrefix
@@ -249,7 +249,9 @@ export async function fileSpec({
       fieldsSet: false,
       triaged: false,
       ...(item.key === 'Plan' ? { containersReconciled: false } : {}),
-      ...(item.kind === 'epic' ? { groups: epicGroups[item.key] ?? null } : {}),
+      ...(item.key === 'Plan' || item.kind === 'epic'
+        ? { groups: epicGroups[item.key] ?? null }
+        : {}),
     })),
   };
   const save = () => writeJson(statePath, state);

@@ -43,7 +43,8 @@ ${XDG_STATE_HOME:-$HOME/.local/state}/<prefix>spec-to-issues/<owner>-<repo>-<spe
       "projectItemId": null,
       "fieldsSet": false,
       "triaged": false,
-      "containersReconciled": false
+      "containersReconciled": false,
+      "groups": [["P0.1", "P1.2"], ["P0.2", "P2.1"]]
     },
     {
       "key": "Phase 0",
@@ -64,13 +65,13 @@ ${XDG_STATE_HOME:-$HOME/.local/state}/<prefix>spec-to-issues/<owner>-<repo>-<spe
       "projectItemId": null,
       "fieldsSet": false,
       "triaged": false,
-      "groups": [["P0.1", "P0.3"], ["P0.2"]]
+      "groups": null
     }
   ]
 }
 ```
 
-`items` is in creation order: the root container keyed `Plan`, then epics, then containers, then leaves, each in specification order. `id` is the issue's REST `id` (sub-issue and dependency calls need it), `nodeId` its `node_id`. `blockersLinked` lists the blocker keys already linked. `containersReconciled` applies to the root only. An epic also carries `groups`, its independence groups as lists of Plan IDs or `null` when none formed. Its `bodies/` file already holds the matching record, so no stage writes the record separately. The root has no parent, so stage 3 skips it and its `parentLinked` stays `false`; that is not an unfinished step.
+`items` is in creation order: the root container keyed `Plan`, then epics, then containers, then leaves, each in specification order. `id` is the issue's REST `id` (sub-issue and dependency calls need it), `nodeId` its `node_id`. `blockersLinked` lists the blocker keys already linked. `containersReconciled` applies to the root only. The root and each epic also carry `groups`, their independence groups as lists of Plan IDs or `null` when none formed; the root's groups are plan-wide and may name leaves of any epic. Each `bodies/` file already holds the matching record, so no stage writes the record separately. The root has no parent, so stage 3 skips it and its `parentLinked` stays `false`; that is not an unfinished step.
 
 ## Rules
 

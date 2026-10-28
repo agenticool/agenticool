@@ -638,7 +638,7 @@ test('ledger output validates parallel groups and supplies other-leaf ownership 
     },
   });
   const packet = JSON.parse(ledgerLine(rows[0]).split(' | dispatch=')[1]);
-  assert.equal(packet.group, '10/g1');
+  assert.deepEqual(packet.groups, ['10/g1']);
   assert.deepEqual(packet.parallelWith, [
     {
       issue: 2,
@@ -661,8 +661,8 @@ test('older independence records without group names read as g1, g2, in order', 
     },
   });
   assert.deepEqual(
-    rows.map((row) => row.group),
-    ['10/g1', '10/g2'],
+    rows.map((row) => row.groups),
+    [['10/g1'], ['10/g2']],
   );
   assert.equal(rows[0].parallelWith[0].issue, 2);
 });
@@ -699,6 +699,169 @@ test('parallel dispatch is blocked for invalid groups, dependency chains, shared
         (row) => row.parallelWith.length === 0,
       ),
     );
+});
+
+// Root 10 holds phase epics 20 (leaves 1, 2) and 30 (leaves 3, 4).
+const plan = {
+  tree: { 10: [20, 30], 20: [1, 2], 30: [3, 4] },
+  sizes: { 1: 'M', 2: 'M', 3: 'M', 4: 'M' },
+};
+/** @param {string[]} lines */
+const record = (...lines) =>
+  `<!-- ${ns}independence-groups -->\n${lines.join('\n')}\n<!-- /${ns}independence-groups -->`;
+const planBodies = {
+  10: record('- g1: #1 #2', '- g2: #3'),
+  1: notes('scripts/a.mjs'),
+  2: notes('scripts/b.mjs'),
+  3: notes('scripts/c.mjs', 'contract-c'),
+  4: notes('scripts/d.mjs'),
+};
+/** @param {any[]} rows */
+const candidates = (rows) =>
+  Object.fromEntries(
+    rows.map((row) => [
+      row.issue,
+      row.parallelWith.map((/** @type {any} */ entry) => entry.issue),
+    ]),
+  );
+
+test('a root record pairs ready M leaves of different phase epics in different groups', () => {
+  const { rows } = queue({ ...plan, bodies: planBodies });
+  assert.deepEqual(
+    rows.map((row) => [row.issue, row.groups]),
+    [
+      [1, ['10/g1']],
+      [2, ['10/g1']],
+      [3, ['10/g2']],
+      [4, []],
+    ],
+  );
+  assert.deepEqual(candidates(rows), { 1: [3], 2: [3], 3: [1, 2], 4: [] });
+  assert.deepEqual(rows[0].parallelWith[0], {
+    issue: 3,
+    group: '10/g2',
+    files: ['scripts/c.mjs'],
+    contracts: ['contract-c'],
+  });
+  // Without the root record, per-epic records never pair across epics.
+  const epicsOnly = queue({
+    ...plan,
+    bodies: {
+      ...planBodies,
+      10: '',
+      20: record('- g1: #1', '- g2: #2'),
+      30: record('- g1: #3', '- g2: #4'),
+    },
+  });
+  assert.deepEqual(candidates(epicsOnly.rows), {
+    1: [2],
+    2: [1],
+    3: [4],
+    4: [3],
+  });
+});
+
+test('cross-epic candidates need both leaves ready, sized M, in different groups, with no shared files or contracts', () => {
+  for (const change of [
+    { deps: { 3: [99] } },
+    { sizes: { ...plan.sizes, 3: 'L' } },
+    { bodies: { ...planBodies, 10: record('- g1: #1 #2 #3') } },
+    {
+      bodies: {
+        ...planBodies,
+        10: record('- g1: #1', '- g2: #3'),
+        3: notes('scripts/a.mjs'),
+      },
+    },
+    { bodies: { ...planBodies, 3: notes('scripts/*.mjs') } },
+    {
+      bodies: {
+        ...planBodies,
+        1: notes('scripts/a.mjs', 'contract-c'),
+        2: notes('scripts/b.mjs', 'contract-c'),
+      },
+    },
+    { bodies: { ...planBodies, 3: '' } },
+  ])
+    assert.ok(
+      queue({ ...plan, bodies: planBodies, ...change }).rows.every(
+        (row) => row.parallelWith.length === 0,
+      ),
+      JSON.stringify(change),
+    );
+});
+
+test('a root record is ignored when malformed, for an issue outside the subtree, a repeat, a blocked-by chain, or an open shared blocker', () => {
+  const epic = record('- g1: #1', '- g2: #2');
+  for (const change of [
+    { bodies: { 10: record('- g1: #1', 'g2 #3') } },
+    { bodies: { 10: record('- g1: #1', '- g2: #3 #99') } },
+    { bodies: { 10: record('- g1: #1', '- g2: #3 #20') } },
+    { bodies: { 10: record('- g1: #1 #3', '- g2: #3') } },
+    { deps: { 3: [99], 99: [1] }, closed: [1] },
+    { deps: { 1: [99], 3: [99] }, pulls: [pull(99)] },
+  ]) {
+    const { rows } = queue({
+      ...plan,
+      ...change,
+      bodies: { ...planBodies, 20: epic, ...change.bodies },
+    });
+    // The root record adds no group; the epic record still reads.
+    assert.ok(
+      rows.every(
+        (row) =>
+          !row.groups.some((/** @type {string} */ g) => g.startsWith('10/')),
+      ),
+      JSON.stringify(change),
+    );
+    assert.deepEqual(
+      rows.filter((row) => row.issue < 3).map((row) => row.groups),
+      [['20/g1'], ['20/g2']],
+    );
+  }
+  // A closed shared blocker does not invalidate the record.
+  const { rows } = queue({
+    ...plan,
+    deps: { 1: [99], 3: [99] },
+    closed: [99],
+    bodies: planBodies,
+  });
+  assert.deepEqual(rows.find((row) => row.issue === 3)?.groups, ['10/g2']);
+});
+
+test('per-epic and root records combine, and a record outside the tree or across a sub-issue cycle reads safely', () => {
+  const { rows } = queue({
+    ...plan,
+    bodies: { ...planBodies, 20: record('- g1: #1', '- g2: #2') },
+  });
+  assert.deepEqual(rows[0].groups, ['10/g1', '20/g1']);
+  assert.deepEqual(candidates(rows), {
+    1: [2, 3],
+    2: [1, 3],
+    3: [1, 2],
+    4: [],
+  });
+  assert.equal(rows[0].parallelWith[0].group, '20/g2');
+  // A blocker outside the tree names its own children, which are not rows.
+  const outside = queue({
+    ...plan,
+    tree: { ...plan.tree, 99: [5] },
+    deps: { 1: [99] },
+    closed: [99],
+    bodies: { ...planBodies, 99: record('- g1: #5', '- g2: #6') },
+  });
+  assert.ok(
+    outside.rows.every(
+      (row) =>
+        !row.groups.some((/** @type {string} */ g) => g.startsWith('99/')),
+    ),
+  );
+  const cycle = queue({
+    tree: { 10: [20], 20: [10, 1, 2] },
+    sizes: { 1: 'M', 2: 'M' },
+    bodies: { ...planBodies, 10: record('- g1: #1', '- g2: #2') },
+  });
+  assert.deepEqual(candidates(cycle.rows), { 1: [2], 2: [1] });
 });
 
 test('advanced live PR base keeps approval when REST verifies the recorded base is an ancestor', () => {
@@ -834,8 +997,8 @@ test('record markers come from binding.namespace', () => {
     }).api,
   });
   assert.deepEqual(
-    grouped.rows.map((row) => row.group),
-    ['none', 'none'],
+    grouped.rows.map((row) => row.groups),
+    [[], []],
   );
 });
 
