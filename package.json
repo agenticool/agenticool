@@ -14,7 +14,7 @@
     "format:check": "prettier . --check --ignore-unknown",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 \"test/**/*.test.mjs\" \"packages/*/test/**/*.test.mjs\"",
+    "test": "node --test --experimental-test-coverage --test-coverage-include=\"packages/*/src/**/*.mjs\" --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 \"test/**/*.test.mjs\" \"packages/*/test/**/*.test.mjs\"",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
   },
   "devDependencies": {
