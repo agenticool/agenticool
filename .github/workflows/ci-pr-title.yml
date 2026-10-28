@@ -13,7 +13,7 @@ on:
   workflow_call:
 
 jobs:
-  # A branch ruleset requires this job's name.
+  # Consumers' branch rulesets require this job's name.
   check-pr-title:
     name: Check PR title follows Conventional Commits
     runs-on: ubuntu-latest

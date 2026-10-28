@@ -38,12 +38,10 @@ jobs:
     name: Scan secrets
     permissions:
       contents: read
-      pull-requests: write
     uses: agenticool/agenticool/.github/workflows/ci-secret-scan.yml@<tag>
-    secrets: inherit
 ```
 
-The secret scan reads the `GITLEAKS_LICENSE` secret, which Gitleaks needs only in organization-owned repositories.
+The secret scan runs a pinned Gitleaks CLI release, checked against its SHA-256, and needs no secrets or license key. On a pull request it scans the pull request's commits; on a push it scans the pushed range; on a manual run or a new branch it scans the full history.
 
 ## Development
 
