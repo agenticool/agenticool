@@ -29,21 +29,23 @@ Run `npx agenticool-spec plan <spec>`. It makes no GitHub call. When it exits no
 
 ## 2. Independence groups
 
-Only the triager forms independence groups, by the definition in `.agents/independence-groups.md`. Skip this step when no epic has two or more direct leaf children in the tree (layers of a stack container are its children, not the epic's).
+Only the triager forms independence groups, by the definition in `.agents/independence-groups.md`. It groups the whole plan at once, so leaves of different phase epics can be delivered in parallel. Skip this step when the tree has fewer than two leaves.
 
-Otherwise create a scratch directory outside the repository (`mktemp -d`) and run `npx agenticool-spec plan <spec> --bodies <scratch>/bodies --json <scratch>/plan.json`, which writes each rendered body to `<scratch>/bodies/<KEY>.md` and the parsed plan, with each item's `key`, `parent`, and `blockedBy`, to `plan.json`. Resolve the triager settings with `npx agenticool-agents resolve --tool <tool> --role issue-triager`, adding `--model` or `--effort` only for a `triager` override in the request. If it exits non-zero, stop and report its message. Spawn one `agenticool-issue-triager` for the plan with the resolved model and effort. Send only the drafts of the leaves under those epics (Plan ID as ref, title, and the rendered body from `<scratch>/bodies/<Plan ID>.md`), each leaf's parent key and blocker keys from `plan.json`, the reason `dependency judgment: independence groups only; metadata comes from the specification`, and the `Policy:` line (`Policy: tool=<tool> role=agenticool-issue-triager model=<model> effort=<effort> (model: <source>, effort: <source>)`).
+Otherwise create a scratch directory outside the repository (`mktemp -d`) and run `npx agenticool-spec plan <spec> --bodies <scratch>/bodies --json <scratch>/plan.json`, which writes each rendered body to `<scratch>/bodies/<KEY>.md` and the parsed plan, with each item's `key`, `parent`, and `blockedBy`, to `plan.json`. Resolve the triager settings with `npx agenticool-agents resolve --tool <tool> --role issue-triager`, adding `--model` or `--effort` only for a `triager` override in the request. If it exits non-zero, stop and report its message. Spawn one `agenticool-issue-triager` for the plan with the resolved model and effort. Send only the drafts of every leaf in the plan, stack layers included (Plan ID as ref, title, and the rendered body from `<scratch>/bodies/<Plan ID>.md`), each leaf's parent key and blocker keys from `plan.json`, the reason `dependency judgment: plan-wide independence groups only, container ref Plan; metadata comes from the specification`, and the `Policy:` line (`Policy: tool=<tool> role=agenticool-issue-triager model=<model> effort=<effort> (model: <source>, effort: <source>)`).
 
 Spawn with the Agent tool: `subagent_type: agenticool-issue-triager`, passing `model` and `effort` from the resolver explicitly.
 
-Apply only its `GROUPS` lines and ignore its `EDGES` line, because the specification's `Blocked by` fields are the plan's only edges. Write the groups to `<scratch>/groups.json`, keyed by epic, one list of Plan IDs per group, leaving out ungrouped leaves and every epic whose line reads `none`:
+Apply only its `Plan | GROUPS` line and ignore its `EDGES` line, because the specification's `Blocked by` fields are the plan's only edges. Unless that line reads `none`, write the groups to `<scratch>/groups.json` under the key `Plan`, one list of Plan IDs per group, leaving out ungrouped leaves. A group may hold leaves of different epics:
 
 ```json
-{ "Phase 0": [["P0.1", "P0.3"], ["P0.2"]] }
+{ "Plan": [["P0.1", "P1.2"], ["P0.2", "P2.1"]] }
 ```
+
+`file` appends them to the root container's body as the plan-wide record `.agents/independence-groups.md` describes.
 
 ## 3. Print the plan and wait
 
-Run `npx agenticool-spec plan <spec> --state <dir> [--groups <scratch>/groups.json] [--assignee <login>]`, passing `--groups` only when step 2 wrote the file and `--assignee` only when there is one. Print its output in full: the tree, each epic's groups, the totals, the assignee, the state directory, and the `Plan digest:` line. Delete the scratch directory. A dry run ends here. A filing request waits for the user to confirm this output; any change to the specification afterwards means running steps 1 to 3 again.
+Run `npx agenticool-spec plan <spec> --state <dir> [--groups <scratch>/groups.json] [--assignee <login>]`, passing `--groups` only when step 2 wrote the file and `--assignee` only when there is one. Print its output in full: the tree, the plan-wide and each epic's groups, the totals, the assignee, the state directory, and the `Plan digest:` line. Delete the scratch directory. A dry run ends here. A filing request waits for the user to confirm this output; any change to the specification afterwards means running steps 1 to 3 again.
 
 ## 4. File
 
@@ -55,4 +57,4 @@ A request to resume, or to file a specification whose state directory already ho
 
 ## Verify and return
 
-Read back a sample of the filed bodies and every item's labels, parent, blockers, and project Priority, Size, and Status. Return the issue lines `file` or `resume` printed (key, number, title, URL), each epic's independence groups, the triager's `Requested settings:` line verbatim when it ran, the patch pass line when it ran, the state directory, and any unfinished item with what is missing (not on the project, no Status, no Priority or Size, a link that failed). Say whether the run is complete or can resume.
+Read back a sample of the filed bodies and every item's labels, parent, blockers, and project Priority, Size, and Status. Return the issue lines `file` or `resume` printed (key, number, title, URL), the plan-wide independence groups, the triager's `Requested settings:` line verbatim when it ran, the patch pass line when it ran, the state directory, and any unfinished item with what is missing (not on the project, no Status, no Priority or Size, a link that failed). Say whether the run is complete or can resume.
