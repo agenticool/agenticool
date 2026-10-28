@@ -6,8 +6,9 @@ on:
       - main
   workflow_dispatch:
 
-# Release Please writes with the GitHub App token below. Pull requests opened
-# with GITHUB_TOKEN would not start the checks the main ruleset requires.
+# Release Please writes with the GitHub App token when RELEASE_PLEASE_APP_ID
+# is set, because pull requests opened with GITHUB_TOKEN do not start checks.
+# Without the app it falls back to GITHUB_TOKEN.
 permissions:
   contents: read
 
@@ -16,12 +17,16 @@ jobs:
     name: Update release PR and create releases
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
     steps:
       - name: Create release token
         id: app-token
+        if: vars.RELEASE_PLEASE_APP_ID != ''
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
@@ -31,14 +36,16 @@ jobs:
         id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         with:
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
   publish-packages:
     name: Publish released packages to npm
     needs: update-release-pr
-    if: needs.update-release-pr.outputs.releases_created == 'true'
+    # Publishing stays off until npm credentials exist: set the
+    # NPM_PUBLISH_ENABLED variable to true once they do.
+    if: needs.update-release-pr.outputs.releases_created == 'true' && vars.NPM_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # id-token lets npm publish through trusted publishing and sign provenance.
