@@ -748,17 +748,51 @@ test('queue recomputes and main reads only fixed results until a blocker needs a
   }
 });
 
-test('specification filing asks the triager for independence groups only', () => {
+test('specification filing runs the spec commands and asks the triager for independence groups only', () => {
   const files = rendered;
   for (const path of inBoth('spec-to-issues/SKILL.md')) {
     const skill = files.get(path);
-    const groups = section(skill, '3. Independence groups');
+    // The packages own every rule and every body; the skill only runs them.
+    assert.match(
+      skill,
+      /This skill applies no rule and writes no issue body itself/,
+      path,
+    );
+    for (const owned of [
+      /`@@issue:/,
+      /reserved-text|plan-section|body-size|template-headings/,
+      /Render every body|Check the rules/,
+      /predicted number|Prediction:/,
+      /references\//,
+      /\.agents\/spec-slicing\.md/,
+    ])
+      assert.doesNotMatch(skill, owned, path);
+    assert.match(
+      skill,
+      /`node_modules\/@agenticool\/spec-parser\/spec-slicing\.md`/,
+      path,
+    );
+    const preflight = section(skill, '1. Pre-flight');
+    assert.match(preflight, /Run `npx agenticool-spec plan <spec>`\./, path);
+    assert.match(preflight, /report its `\[rule\] message` lines/, path);
+    const groups = section(skill, '2. Independence groups');
     assert.match(
       groups,
       /^Only the triager forms independence groups, by the definition in `\.agents\/independence-groups\.md`\./m,
       path,
     );
-    assert.match(groups, /resolve --tool <tool> --role issue-triager`/, path);
+    assert.match(groups, /two or more direct leaf children/, path);
+    assert.match(
+      groups,
+      /`npx agenticool-spec plan <spec> --bodies <scratch>\/bodies --json <scratch>\/plan\.json`/,
+      path,
+    );
+    assert.match(groups, /scratch directory outside the repository/, path);
+    assert.match(
+      groups,
+      /`npx agenticool-agents resolve --tool <tool> --role issue-triager`/,
+      path,
+    );
     assert.match(
       groups,
       /`dependency judgment: independence groups only; metadata comes from the specification`/,
@@ -769,39 +803,33 @@ test('specification filing asks the triager for independence groups only', () =>
       /Apply only its `GROUPS` lines and ignore its `EDGES` line/,
       path,
     );
-    // The record lives in the epic's rendered body, so every fill and patch,
-    // including a resumed run's refill, carries it.
     assert.match(
       groups,
-      /append the epic's independence record to `bodies\/<epic>\.md` with `@@issue:KEY@@` placeholders, as body-shapes\.md describes, so every fill and patch in \[File\]\(#5-file\) carries it\./,
+      /\{ "Phase 0": \[\["P0\.1", "P0\.3"\], \["P0\.2"\]\] \}/,
       path,
     );
+    const print = section(skill, '3. Print the plan and wait');
     assert.match(
-      groups,
-      /On resume, append the recorded groups to the rebuilt epic bodies the same way and never spawn the triager again\./,
+      print,
+      /`npx agenticool-spec plan <spec> --state <dir> \[--groups <scratch>\/groups\.json\] \[--assignee <login>\]`/,
       path,
     );
+    assert.match(print, /`Plan digest:` line/, path);
+    assert.match(print, /waits for the user to confirm/, path);
+    const file = section(skill, '4. File');
     assert.match(
-      section(skill, 'Resume'),
-      /confirm its `planSha256` matches, computed before the recorded groups are appended/,
+      file,
+      /After the user confirms, run `npx agenticool-spec confirm <digest> --state <dir>`[^\n]*then `npx agenticool-spec file <spec> --state <dir>`/,
       path,
     );
-    assert.doesNotMatch(
-      skill,
-      /Record groups|groupsRecorded|so no triager runs/,
-      path,
-    );
-  }
-  for (const path of inBoth('spec-to-issues/references/body-shapes.md'))
+    const resume = section(skill, 'Resume');
     assert.match(
-      section(files.get(path), 'Epic'),
-      /appends the section that `\.agents\/independence-groups\.md` shows to the end of `bodies\/<epic>\.md`, one list item per group, with `@@issue:<Plan ID>@@` for each leaf in place of an issue number\. The record then goes through every fill and patch like the rest of the body\./,
+      resume,
+      /`npx agenticool-spec resume <spec> --state <dir>`/,
       path,
     );
-  for (const path of inBoth('spec-to-issues/references/state-file.md')) {
-    const state = files.get(path);
-    assert.match(state, /before the independence records are appended/, path);
-    assert.doesNotMatch(state, /groupsRecorded/, path);
+    assert.match(resume, /never spawn the triager again/, path);
+    assert.ok(section(skill, 'Verify and return'), path);
   }
   assert.match(
     files.get(`.agents/skills/${PREFIX}spec-to-issues/SKILL.md`),
@@ -815,23 +843,17 @@ test('specification filing asks the triager for independence groups only', () =>
       `Spawn with the Agent tool: \`subagent_type: ${PREFIX}issue-triager\``,
     ),
   );
-});
-
-test('the heading and size checks allow for the independence record on an epic', () => {
-  const files = rendered;
-  for (const path of inBoth('spec-to-issues/references/body-shapes.md')) {
-    const shapes = files.get(path);
-    assert.match(
-      section(shapes, 'Heading check (rule `template-headings`)'),
-      /The only other headings allowed are on an epic: `Contracts`, then `Independence groups`, which the groups step appends after pre-flight and which always comes last\./,
-      path,
-    );
-    assert.match(
-      section(shapes, 'Size check (rule `body-size`)'),
-      /an epic with two or more direct leaf children also counts the largest record that step can append: the section `\.agents\/independence-groups\.md` shows, with each of those leaves as `#9999999` in a group of its own\./,
-      path,
-    );
-  }
+  // The package docs are the only copy of the format, state, and REST rules.
+  assert.deepEqual(
+    [...files.keys()]
+      .filter((path) => path.includes(`${PREFIX}spec-to-issues/`))
+      .sort(),
+    [
+      `.agents/skills/${PREFIX}spec-to-issues/SKILL.md`,
+      `.agents/skills/${PREFIX}spec-to-issues/agents/openai.yaml`,
+      `.claude/skills/${PREFIX}spec-to-issues/SKILL.md`,
+    ],
+  );
 });
 
 test('implementation is medium while every review dispatch has its own high settings', () => {
