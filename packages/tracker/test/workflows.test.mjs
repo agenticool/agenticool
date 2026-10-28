@@ -571,6 +571,83 @@ test('both PR tracker workflows skip edits that leave the body unchanged', () =>
   }
 });
 
+test('without the token secret every job warns and skips the rest of its steps', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'tracker-token-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  let runs = 0;
+  /**
+   * @param {Record<string, any>} step
+   * @param {string} token
+   */
+  const guard = (step, token) => {
+    const output = join(directory, `output-${runs++}`);
+    writeFileSync(output, '');
+    const result = spawnSync('bash', ['-e', '-c', step.run], {
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH,
+        GITHUB_OUTPUT: output,
+        TOKEN_ENV: TOKEN,
+        PROJECT_TOKEN: token,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return { stdout: result.stdout, output: readFileSync(output, 'utf8') };
+  };
+  for (const name of [
+    'tracker-issue-states',
+    'tracker-pr-issue-status',
+    'tracker-pr-metadata',
+    'tracker-project-membership',
+  ])
+    for (const [id, job] of Object.entries(reusable(name).jobs)) {
+      const [first, ...rest] = job.steps;
+      const label = `${name} ${id}`;
+      assert.equal(first.id, 'token', label);
+      assert.equal(first.env.PROJECT_TOKEN, '${{ secrets[inputs.token_env] }}');
+      assert.equal(
+        first.env.TOKEN_ENV ?? job.env?.TOKEN_ENV,
+        '${{ inputs.token_env }}',
+        label,
+      );
+      assert.deepEqual(guard(first, ''), {
+        stdout: `::warning::${TOKEN} secret is not set; skipping\n`,
+        output: '',
+      });
+      assert.deepEqual(guard(first, 'secret'), {
+        stdout: '',
+        output: 'set=true\n',
+      });
+      // Actions reads a missing step output as an empty string, and a
+      // skipped install step has the outcome `skipped`.
+      /**
+       * @param {string} set
+       * @param {string} outcome
+       */
+      const runsStep = (set, outcome) =>
+        rest.map((/** @type {any} */ step) =>
+          Boolean(
+            expression(step.if, {
+              inputs: { issue: 0 },
+              cancelled: () => false,
+              steps: { token: { outputs: { set } }, install: { outcome } },
+            }),
+          ),
+        );
+      assert.ok(rest.length > 0, label);
+      assert.deepEqual(
+        runsStep('', 'skipped'),
+        rest.map(() => false),
+        label,
+      );
+      assert.deepEqual(
+        runsStep('true', 'success'),
+        rest.map(() => true),
+        label,
+      );
+    }
+});
+
 test('rendered caller workflows pass the workflow lint rules', (t) => {
   const root = mkdtempSync(join(tmpdir(), 'tracker-callers-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));

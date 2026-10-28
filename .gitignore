@@ -9,8 +9,10 @@ coverage/
 !.env.example
 
 # Agent-owned linked worktrees and local agent files
+# agenticool-agents sync: begin agent-local
 .claude/worktrees/
 .codex/worktrees/
 CLAUDE.local.md
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+# agenticool-agents sync: end agent-local

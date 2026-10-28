@@ -45,7 +45,7 @@ Each caller workflow template keeps its tracker workflow's triggers, label and b
 | `.github/workflows/_tracker-pr-issue-status.yml` | `pull_request`, `action`, `dry_run` | `pr-status` |
 | `.github/workflows/_tracker-pr-metadata.yml` | `pull_request`, `dry_run` | `pr-metadata` |
 
-Every reusable workflow also takes `token_env`, the name of the secret that holds the Projects token, which the templates fill from `binding.tokenEnv`. Each job checks out the caller's default branch, sets up Node.js from its `.tool-versions`, runs `npm ci`, and runs the caller's installed `npx --no agenticool-tracker`. A caller therefore needs `@agenticool/tracker` in its `package.json` and `package-lock.json`, a `.tool-versions` with a `nodejs` line, and `.agents/policy.json` on its default branch.
+Every reusable workflow also takes `token_env`, the name of the secret that holds the Projects token, which the templates fill from `binding.tokenEnv`. Each job checks out the caller's default branch, sets up Node.js from its `.tool-versions`, runs `npm ci`, and runs the caller's installed `npx --no agenticool-tracker`. When the `token_env` secret is empty or missing, each job prints a `<token_env> secret is not set; skipping` warning and succeeds without running those steps, so a repository can add the workflows before its project and token exist; a set but invalid token still fails the job. A caller therefore needs `@agenticool/tracker` in its `package.json` and `package-lock.json`, a `.tool-versions` with a `nodejs` line, and `.agents/policy.json` on its default branch.
 
 ## Config keys
 

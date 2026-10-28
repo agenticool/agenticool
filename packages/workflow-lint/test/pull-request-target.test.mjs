@@ -224,6 +224,34 @@ test('an agenticool reusable workflow pinned at a release tag or commit passes',
     );
 });
 
+test('only agenticool itself may call its tracker workflows locally', () => {
+  /**
+   * @param {string} uses
+   * @param {string} [repository]
+   */
+  const call = (uses, repository) =>
+    problems(
+      {
+        [FILE]: `on: pull_request_target\njobs:\n  call:\n    uses: ${uses}\n`,
+      },
+      repository,
+    );
+  const local = './.github/workflows/_tracker-pr-metadata.yml';
+  assert.deepEqual(call(local, 'agenticool/agenticool'), []);
+  for (const [uses, repository] of /** @type {[string, string?][]} */ ([
+    [local, 'example/repo'],
+    [local, undefined],
+    ['./.github/workflows/_ci-pr-title.yml', 'agenticool/agenticool'],
+    ['./.github/workflows/tracker-pr-metadata.yml', 'agenticool/agenticool'],
+    [`${local}@main`, 'agenticool/agenticool'],
+  ]))
+    assert.deepEqual(
+      call(uses, repository),
+      [`call calls a reusable workflow: ${uses}`],
+      `${uses} in ${repository}`,
+    );
+});
+
 test('the same steps pass outside pull_request_target', () => {
   assert.deepEqual(
     lint(

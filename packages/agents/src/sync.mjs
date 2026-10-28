@@ -186,7 +186,7 @@ function agentsMd(policy, base) {
  */
 export function renderSync(base = process.cwd()) {
   const policy = loadPolicy(base, { sections: ['binding'] });
-  const { docs, features } = binding(policy);
+  const { docs, features, repository } = binding(policy);
   /** @type {Map<string, string>} */
   const files = new Map();
   files.set('.github/labels.json', labels(policy));
@@ -200,10 +200,16 @@ export function renderSync(base = process.cwd()) {
     renderTemplate('pull_request_template.md', policy),
   );
   files.set(docs.triage, renderTemplate('ISSUE_TRIAGE.md', policy));
+  // The repository that hosts the reusable workflows calls them from its own
+  // checkout, at the caller's commit, rather than at a tracker release.
+  const hosted = new RegExp(
+    `uses: ${repository.replaceAll('.', '\\.')}/(\\.github/workflows/_[a-z0-9-]+\\.yml)@\\S+`,
+    'g',
+  );
   for (const name of templates('workflows'))
     files.set(
       `.github/workflows/${name}`,
-      renderTemplate(`workflows/${name}`, policy),
+      renderTemplate(`workflows/${name}`, policy).replace(hosted, 'uses: ./$1'),
     );
   files.set('AGENTS.md', agentsMd(policy, base));
   files.set(
@@ -211,7 +217,11 @@ export function renderSync(base = process.cwd()) {
     replaceBlock(
       read(base, '.gitignore') ?? '',
       'agent-local',
-      AGENT_LOCAL_FILES.join('\n'),
+      // Playwright MCP writes snapshots and screenshots to `.playwright-mcp/`.
+      [
+        ...AGENT_LOCAL_FILES,
+        ...(features.browserMcp ? ['.playwright-mcp/'] : []),
+      ].join('\n'),
       hash,
       '.gitignore',
     ),

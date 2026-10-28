@@ -183,6 +183,58 @@ test('a first sync writes the tracker templates, the AGENTS.md sections, and the
   assert.deepEqual(syncCheck(base), []);
 });
 
+test('the repository that hosts the reusable workflows calls them locally', () => {
+  const value = bound(other);
+  value.binding.repository = 'agenticool/agenticool';
+  const base = consumer(value);
+  sync(base);
+  for (const name of [
+    'tracker-issue-states.yml',
+    'tracker-pr-issue-status.yml',
+    'tracker-pr-metadata.yml',
+    'tracker-project-membership.yml',
+  ]) {
+    const text = read(base, `.github/workflows/${name}`);
+    const calls = [...text.matchAll(/^\s*uses: (.+)$/gm)].map(
+      ([, uses]) => uses,
+    );
+    assert.ok(calls.length > 0, name);
+    for (const uses of calls)
+      assert.match(
+        uses,
+        /^\.\/\.github\/workflows\/_tracker-[a-z-]+\.yml$/,
+        name,
+      );
+    assert.equal(
+      text.replaceAll(/uses: \.\/(\S+)/g, 'uses: agenticool/agenticool/$1@X'),
+      renderTemplate(`workflows/${name}`, value).replaceAll(
+        /@tracker-v\S+/g,
+        '@X',
+      ),
+    );
+  }
+  assert.deepEqual(syncCheck(base), []);
+  // Any other repository keeps the release pin.
+  const pinned = consumer(bound(other));
+  sync(pinned);
+  assert.match(
+    read(pinned, '.github/workflows/tracker-pr-metadata.yml'),
+    /uses: agenticool\/agenticool\/\.github\/workflows\/_tracker-pr-metadata\.yml@tracker-v/,
+  );
+});
+
+test('with features.browserMcp, the .gitignore block also ignores .playwright-mcp/', () => {
+  const base = consumer(bound(policy, { browserMcp: true }));
+  sync(base);
+  assert.equal(
+    read(base, '.gitignore'),
+    `${gitignoreBlock.replace('\n# agenticool-agents sync: end', '\n.playwright-mcp/\n# agenticool-agents sync: end')}\n`,
+  );
+  const plain = consumer(bound(policy));
+  sync(plain);
+  assert.doesNotMatch(read(plain, '.gitignore'), /playwright/);
+});
+
 test('a second sync changes nothing', () => {
   const base = consumer(bound(policy, { browserMcp: true }), {
     'AGENTS.md': '# Rules\n\nOwn text.\n',
