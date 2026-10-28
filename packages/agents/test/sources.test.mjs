@@ -417,7 +417,7 @@ test('independent review stays a separate fresh-context gate on mandatory paths'
     for (const scope of [
       '`.agents/`',
       '`AGENTS.md`',
-      '`scripts/agent-policy*`',
+      '`.claude/`',
       '`.github/workflows/`',
       ...(policy.binding.features.infrastructure
         ? [
@@ -922,9 +922,10 @@ test('delivery instructions persist later effort decisions and advance after a r
 
 // A consumer has only its policy, its local sources, and the generated and
 // synced output, never the shared sources under `.agents/roles/`,
-// `.agents/workflows/`, or a `.agents/README.md`.
+// `.agents/workflows/`, a `.agents/README.md`, or another repository's
+// `scripts/`.
 test('every consumer path a generated file names exists in the fixture consumer', () => {
-  const files = readdirSync(join(FIXTURE, '.agents'), {
+  const files = readdirSync(FIXTURE, {
     recursive: true,
     withFileTypes: true,
   })
@@ -934,7 +935,9 @@ test('every consumer path a generated file names exists in the fixture consumer'
     );
   const local = [policy.local.roles, policy.local.workflows];
   for (const [path, content] of rendered)
-    for (const [named] of content.matchAll(/\.agents\/[\w.*<>/-]*[\w*>]/g)) {
+    for (const [named] of content.matchAll(
+      /(?<![\w./-])(?:\.agents|scripts)\/[\w.*<>/-]*[\w*>]/g,
+    )) {
       // `.agents/*.md` and `.agents/skills/<name>` name every match.
       const stem = named.split(/[*<]/)[0];
       const directory = stem.endsWith('/') ? stem : `${stem}/`;

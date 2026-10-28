@@ -38,6 +38,7 @@ test('the binding resolves every placeholder', () => {
     'project.number': '7',
     'project.name': 'Other delivery',
     'project.url': 'https://github.com/users/example/projects/7',
+    'project.restPath': 'users/example/projectsV2/7',
     'docs.triage': 'TRIAGE.md',
     'docs.workflow': 'AGENTS.md',
     'docs.guides': '`AGENTS.md`',
