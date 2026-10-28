@@ -45,6 +45,13 @@ const withNewFields = (policy, token) => ({
     areas: { ci: 'CI', tracker: 'Tracker' },
     exclude: ['vendor-sync.yml'],
     pullRequestTarget: ['tracker-pr-metadata.yml'],
+    requiredChecks: [
+      {
+        file: 'ci-pr-title.yml',
+        job: 'check-pr-title',
+        name: 'Check PR title follows Conventional Commits',
+      },
+    ],
   },
   local: { roles: '.agents/local/roles', workflows: '.agents/local/workflows' },
 });
@@ -175,6 +182,11 @@ test('the schema rejects unknown keys at every level', () => {
       /workflowLint has unknown key vendor/,
     ],
     [
+      'required check',
+      (copy) => (copy.workflowLint.requiredChecks[0].matrix = false),
+      /workflowLint.requiredChecks\[0\] has unknown key matrix/,
+    ],
+    [
       'local',
       (copy) => (copy.local.skills = 'x'),
       /local has unknown key skills/,
@@ -232,6 +244,10 @@ test('the schema rejects values of the wrong shape', () => {
     [
       { labels: { extra: [{ name: 'x', color: 'red', description: '' }] } },
       /labels.extra\[0\].color must match/,
+    ],
+    [
+      { workflowLint: { requiredChecks: [{ file: 'ci.yml', job: 'test' }] } },
+      /workflowLint.requiredChecks\[0\] is missing name/,
     ],
     [
       { implementationEffort: { default: 'medium' } },

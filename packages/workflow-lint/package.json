@@ -7,9 +7,18 @@
   "exports": {
     ".": "./src/index.mjs"
   },
+  "bin": {
+    "agenticool-workflow-lint": "./bin/agenticool-workflow-lint.mjs"
+  },
   "files": [
+    "bin",
     "src"
   ],
+  "dependencies": {
+    "@agenticool/cli": "^0.0.0",
+    "@agenticool/policy": "^0.0.0",
+    "yaml": "2.9.1"
+  },
   "engines": {
     "node": ">=24.2"
   },

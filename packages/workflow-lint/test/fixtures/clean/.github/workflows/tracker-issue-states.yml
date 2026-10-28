@@ -1,0 +1,16 @@
+name: 'Tracker: reconcile issue states'
+run-name: 'Tracker: reconcile after ${{ github.event.workflow_run.name }}'
+
+on:
+  workflow_run:
+    workflows: ['CI: checks']
+    types: [completed]
+
+jobs:
+  reconcile-states:
+    name: Reconcile issue states
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reconcile
+        run: echo reconcile

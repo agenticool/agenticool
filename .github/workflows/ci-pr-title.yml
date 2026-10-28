@@ -1,4 +1,6 @@
 # Requires a Conventional Commits PR title. The squash commit takes the title.
+# Other repositories call this workflow by tag from their own pull_request
+# workflow.
 
 name: 'CI: PR title'
 
@@ -8,8 +10,10 @@ on:
       - opened
       - edited
       - synchronize
+  workflow_call:
 
 jobs:
+  # Consumers' branch rulesets require this job's name.
   check-pr-title:
     name: Check PR title follows Conventional Commits
     runs-on: ubuntu-latest

@@ -1,0 +1,13 @@
+name: 'CI: build (reusable)'
+
+on:
+  workflow_call:
+
+jobs:
+  build-package:
+    name: ${{ inputs.target || 'Build package' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Report
+        uses: ./.github/actions/report

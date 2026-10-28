@@ -1,2 +1,2 @@
-// The public API arrives with the package's first feature slice.
-export {};
+export { main } from './cli.mjs';
+export { lintWorkflows, rules } from './lint.mjs';
