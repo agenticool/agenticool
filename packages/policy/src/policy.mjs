@@ -214,6 +214,7 @@ export function placeholders(policy) {
     'project.number': String(board.number),
     'project.name': board.name,
     'project.url': `https://github.com/${owners}/${board.owner}/projects/${board.number}`,
+    'project.restPath': `${owners}/${board.owner}/projectsV2/${board.number}`,
     'docs.triage': value.docs.triage,
     'docs.workflow': value.docs.workflow,
     'docs.guides': listPhrase(value.docs.guides),

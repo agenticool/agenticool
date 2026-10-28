@@ -62,6 +62,10 @@ test('substitute resolves every placeholder and feature section', () => {
     /Unknown placeholder: nope/,
   );
   assert.equal(substitute('a \\{{prefix}} b', policy), 'a {{prefix}} b');
+  assert.equal(
+    substitute('gh api {{project.restPath}}/fields', other),
+    'gh api users/example/projectsV2/7/fields',
+  );
   assert.throws(
     () => substitute('{{#magic}}x{{/magic}}', policy),
     /Unknown feature section: magic/,

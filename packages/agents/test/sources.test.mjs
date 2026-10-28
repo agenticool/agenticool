@@ -2,7 +2,7 @@
 // procedure depend on, for the fixture consumer's binding.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -417,7 +417,7 @@ test('independent review stays a separate fresh-context gate on mandatory paths'
     for (const scope of [
       '`.agents/`',
       '`AGENTS.md`',
-      '`scripts/agent-policy*`',
+      '`.claude/`',
       '`.github/workflows/`',
       ...(policy.binding.features.infrastructure
         ? [
@@ -918,4 +918,33 @@ test('delivery instructions persist later effort decisions and advance after a r
     );
     assert.match(content, /saved fixed-result file outside tracked paths/);
   }
+});
+
+// A consumer has only its policy, its local sources, and the generated and
+// synced output, never the shared sources under `.agents/roles/`,
+// `.agents/workflows/`, a `.agents/README.md`, or another repository's
+// `scripts/`.
+test('every consumer path a generated file names exists in the fixture consumer', () => {
+  const files = readdirSync(FIXTURE, {
+    recursive: true,
+    withFileTypes: true,
+  })
+    .filter((entry) => entry.isFile())
+    .map((entry) =>
+      join(entry.parentPath, entry.name).slice(FIXTURE.length + 1),
+    );
+  const local = [policy.local.roles, policy.local.workflows];
+  for (const [path, content] of rendered)
+    for (const [named] of content.matchAll(
+      /(?<![\w./-])(?:\.agents|scripts)\/[\w.*<>/-]*[\w*>]/g,
+    )) {
+      // `.agents/*.md` and `.agents/skills/<name>` name every match.
+      const stem = named.split(/[*<]/)[0];
+      const directory = stem.endsWith('/') ? stem : `${stem}/`;
+      assert.ok(
+        local.includes(named) ||
+          files.some((file) => file === stem || file.startsWith(directory)),
+        `${path} names ${named}, which the consumer does not have`,
+      );
+    }
 });

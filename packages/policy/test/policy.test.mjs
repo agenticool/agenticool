@@ -286,15 +286,24 @@ test('binding helpers read repository facts and name what is missing', () => {
   }
 });
 
-test('the project URL follows the owner type', () => {
+test('the project URL and REST path follow the owner type', () => {
   const policy = read('mcc');
+  const { owner, number } = policy.binding.project;
   assert.equal(
     placeholders(policy)['project.url'],
-    `https://github.com/users/${policy.binding.project.owner}/projects/${policy.binding.project.number}`,
+    `https://github.com/users/${owner}/projects/${number}`,
+  );
+  assert.equal(
+    placeholders(policy)['project.restPath'],
+    `users/${owner}/projectsV2/${number}`,
   );
   policy.binding.project.ownerType = 'organization';
   assert.equal(
     placeholders(policy)['project.url'],
-    `https://github.com/orgs/${policy.binding.project.owner}/projects/${policy.binding.project.number}`,
+    `https://github.com/orgs/${owner}/projects/${number}`,
+  );
+  assert.equal(
+    placeholders(policy)['project.restPath'],
+    `orgs/${owner}/projectsV2/${number}`,
   );
 });

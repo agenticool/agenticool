@@ -78,7 +78,7 @@ export function substitute(text, policy) {
   if (/\{\{[#/]/.test(sections))
     throw new Error('Unbalanced feature section in source');
   return sections
-    .replace(/\{\{([a-z.]+)\}\}/g, (_, name) => {
+    .replace(/\{\{([a-zA-Z.]+)\}\}/g, (_, name) => {
       if (!(name in values)) throw new Error(`Unknown placeholder: ${name}`);
       return values[name];
     })

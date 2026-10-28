@@ -83,7 +83,7 @@ The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `secu
 
 ### Source syntax
 
-- `{{prefix}}`, `{{label}}`, `{{repository}}`, `{{project.owner}}`, `{{project.number}}`, `{{project.name}}`, `{{project.url}}`, `{{docs.triage}}`, `{{docs.workflow}}`, and `{{docs.guides}}` resolve from `binding`. An unknown placeholder fails generation.
+- `{{prefix}}`, `{{label}}`, `{{repository}}`, `{{project.owner}}`, `{{project.number}}`, `{{project.name}}`, `{{project.url}}`, `{{project.restPath}}` (the Projects v2 REST path, `users/` or `orgs/` by `ownerType`), `{{docs.triage}}`, `{{docs.workflow}}`, and `{{docs.guides}}` resolve from `binding`. An unknown placeholder fails generation.
 - `{{#feature}}...{{/feature}}` keeps its text only when `binding.features.<feature>` is true. An unknown feature or an unbalanced section fails generation.
 - `{{> name}}` inserts `sources/includes/<name>.md` without its trailing newline. Names are lowercase letters and dashes, includes cannot nest, and an unknown or malformed include fails generation.
 - `\{{` stays a literal `{{`, for text that documents the syntax itself.
@@ -139,6 +139,8 @@ To check discovery, open a fresh session in a new worktree and run `claude mcp l
 ### Add repository-only roles and skills
 
 Put a repository-only role in `.agents/local/roles/<name>.md` (with a `roles` entry) and a skill in `.agents/local/workflows/<name>.md`, with its references in `.agents/local/workflows/<name>/`. Local sources use the same syntax and shared includes, and their generated headers name the local file. A local source with the name of a shared role or workflow fails generation: rename it rather than replacing shared behavior.
+
+The generated `<prefix>-agents` skill tells a consumer where each change goes: models, efforts, and the binding in `.agents/policy.json`, repository-only roles and skills under `local.roles` and `local.workflows`, and shared roles, skills, and rules upstream in this package. It regenerates with `npx agenticool-agents generate` and `sync` and verifies with `check`.
 
 ### Agents and skills
 
