@@ -45,6 +45,7 @@ jobs:
     uses: ./.github/workflows/_tracker-issue-states.yml
     with:
       token_env: 'AGENTICOOL_PROJECT_TOKEN'
+      tracker_version: 'workspace'
       issue: ${{ github.event.issue.number || 0 }}
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
     secrets:

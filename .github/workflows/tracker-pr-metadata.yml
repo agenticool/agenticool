@@ -31,6 +31,7 @@ jobs:
     uses: ./.github/workflows/_tracker-pr-metadata.yml
     with:
       token_env: 'AGENTICOOL_PROJECT_TOKEN'
+      tracker_version: 'workspace'
       pull_request: ${{ fromJSON(github.event.pull_request.number || inputs.pull_request) }}
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
     secrets:

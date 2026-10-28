@@ -205,12 +205,22 @@ test('the repository that hosts the reusable workflows calls them locally', () =
         /^\.\/\.github\/workflows\/_tracker-[a-z-]+\.yml$/,
         name,
       );
+    // Each call runs the workspace tracker rather than a published release.
+    const versions = [...text.matchAll(/^\s*tracker_version: (.+)$/gm)].map(
+      ([, version]) => version,
+    );
+    assert.deepEqual(
+      versions,
+      calls.map(() => "'workspace'"),
+      name,
+    );
     assert.equal(
-      text.replaceAll(/uses: \.\/(\S+)/g, 'uses: agenticool/agenticool/$1@X'),
-      renderTemplate(`workflows/${name}`, value).replaceAll(
-        /@tracker-v\S+/g,
-        '@X',
-      ),
+      text
+        .replaceAll(/uses: \.\/(\S+)/g, 'uses: agenticool/agenticool/$1@X')
+        .replaceAll("tracker_version: 'workspace'", 'tracker_version: X'),
+      renderTemplate(`workflows/${name}`, value)
+        .replaceAll(/@tracker-v\S+/g, '@X')
+        .replaceAll(/tracker_version: '[^']+'/g, 'tracker_version: X'),
     );
   }
   assert.deepEqual(syncCheck(base), []);
@@ -220,6 +230,10 @@ test('the repository that hosts the reusable workflows calls them locally', () =
   assert.match(
     read(pinned, '.github/workflows/tracker-pr-metadata.yml'),
     /uses: agenticool\/agenticool\/\.github\/workflows\/_tracker-pr-metadata\.yml@tracker-v/,
+  );
+  assert.doesNotMatch(
+    read(pinned, '.github/workflows/tracker-pr-metadata.yml'),
+    /workspace/,
   );
 });
 

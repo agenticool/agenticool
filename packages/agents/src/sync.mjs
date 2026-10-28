@@ -201,16 +201,22 @@ export function renderSync(base = process.cwd()) {
   );
   files.set(docs.triage, renderTemplate('ISSUE_TRIAGE.md', policy));
   // The repository that hosts the reusable workflows calls them from its own
-  // checkout, at the caller's commit, rather than at a tracker release.
+  // checkout, at the caller's commit, rather than at a tracker release, and
+  // runs its workspace tracker, which needs no published version.
   const hosted = new RegExp(
     `uses: ${repository.replaceAll('.', '\\.')}/(\\.github/workflows/_[a-z0-9-]+\\.yml)@\\S+`,
     'g',
   );
-  for (const name of templates('workflows'))
+  for (const name of templates('workflows')) {
+    const text = renderTemplate(`workflows/${name}`, policy);
+    const local = text.replace(hosted, 'uses: ./$1');
     files.set(
       `.github/workflows/${name}`,
-      renderTemplate(`workflows/${name}`, policy).replace(hosted, 'uses: ./$1'),
+      local === text
+        ? text
+        : local.replace(/(tracker_version: )'[^']*'/g, "$1'workspace'"),
     );
+  }
   files.set('AGENTS.md', agentsMd(policy, base));
   files.set(
     '.gitignore',
