@@ -1,0 +1,7 @@
+# Generated from @agenticool/agents/sources/workflows/stack.md by agenticool-agents. Edit the source and run `npx agenticool-agents generate`.
+interface:
+  display_name: 'Agenticool: Stack'
+  short_description: Build, link, rebase, and sync stacked Agenticool branches safely
+  default_prompt: Use $agenticool-stack to manage the stacked branches for this Agenticool delivery.
+policy:
+  allow_implicit_invocation: true

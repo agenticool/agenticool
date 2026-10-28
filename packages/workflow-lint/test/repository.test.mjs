@@ -1,31 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { loadPolicy } from '@agenticool/policy';
 import { lintWorkflows } from '@agenticool/workflow-lint';
 
-test("this repository's workflows pass every rule", () => {
+test("this repository's workflows pass every rule with its own policy", () => {
+  const root = fileURLToPath(new URL('../../../', import.meta.url));
+  const policy = loadPolicy(root, {
+    sections: ['binding.repository', 'workflowLint'],
+  });
   assert.deepEqual(
-    lintWorkflows(
-      fileURLToPath(new URL('../../../.github/workflows', import.meta.url)),
-      {
-        config: {
-          areas: { ci: 'CI', release: 'Release', tracker: 'Tracker' },
-          requiredChecks: [
-            {
-              file: 'ci-pr-title.yml',
-              job: 'check-pr-title',
-              name: 'Check PR title follows Conventional Commits',
-            },
-            {
-              file: 'ci-secret-scan.yml',
-              job: 'scan-secrets',
-              name: 'Scan commits for secrets',
-            },
-          ],
-        },
-        repository: 'agenticool/agenticool',
-      },
-    ),
+    lintWorkflows(`${root}.github/workflows`, {
+      config: policy.workflowLint,
+      repository: policy.binding.repository,
+    }),
     [],
   );
 });
