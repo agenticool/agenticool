@@ -81,7 +81,7 @@ const DEFAULT_BRANCH = { repository: { default_branch: 'main' } };
 function callsReusable(job, name) {
   assert.equal(job.uses, uses(name));
   assert.equal(job.with.token_env, TOKEN);
-  assert.equal(job.secrets, 'inherit');
+  assert.deepEqual(job.secrets, { project_token: `\${{ secrets.${TOKEN} }}` });
 }
 
 /** @param {Record<string, any>} job */
@@ -101,7 +101,7 @@ const commandSteps = (job) =>
 
 /** @param {Record<string, any>} step */
 function getsToken(step) {
-  assert.equal(step.env.PROJECT_TOKEN, '${{ secrets[inputs.token_env] }}');
+  assert.equal(step.env.PROJECT_TOKEN, '${{ secrets.project_token }}');
   assert.match(step.run, /^export "\$TOKEN_ENV=\$PROJECT_TOKEN"\n/);
 }
 
@@ -571,6 +571,34 @@ test('both PR tracker workflows skip edits that leave the body unchanged', () =>
   }
 });
 
+// A caller passes only the Projects token, never every repository secret.
+test('callers pass only the project token, the one secret each reusable workflow declares', () => {
+  for (const name of [
+    'tracker-issue-states',
+    'tracker-pr-issue-status',
+    'tracker-pr-metadata',
+    'tracker-project-membership',
+  ]) {
+    assert.doesNotMatch(
+      readFileSync(
+        new URL(`../templates/workflows/${name}.yml`, import.meta.url),
+        'utf8',
+      ),
+      /secrets:\s*inherit/,
+      name,
+    );
+    for (const job of Object.values(caller(name).jobs))
+      assert.deepEqual(Object.keys(job.secrets), ['project_token'], name);
+    assert.deepEqual(reusable(name).on.workflow_call.secrets, {
+      project_token: {
+        description:
+          'Projects token, from the secret named by binding.tokenEnv',
+        required: false,
+      },
+    });
+  }
+});
+
 test('without the token secret every job warns and skips the rest of its steps', (t) => {
   const directory = mkdtempSync(join(tmpdir(), 'tracker-token-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
@@ -604,7 +632,7 @@ test('without the token secret every job warns and skips the rest of its steps',
       const [first, ...rest] = job.steps;
       const label = `${name} ${id}`;
       assert.equal(first.id, 'token', label);
-      assert.equal(first.env.PROJECT_TOKEN, '${{ secrets[inputs.token_env] }}');
+      assert.equal(first.env.PROJECT_TOKEN, '${{ secrets.project_token }}');
       assert.equal(
         first.env.TOKEN_ENV ?? job.env?.TOKEN_ENV,
         '${{ inputs.token_env }}',
