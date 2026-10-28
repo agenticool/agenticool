@@ -5,7 +5,7 @@ import { CliHelp, cliError, defineCli, parseCli } from '@agenticool/cli';
 import { loadPolicy, POLICY_PATH, resolve } from '@agenticool/policy';
 import { check, generate } from './generate.mjs';
 import { publishReview, ReviewNotPosted } from './review.mjs';
-import { sync, syncCheck, unlistedPullRequestTarget } from './sync.mjs';
+import { sync, syncCheck } from './sync.mjs';
 
 /** @typedef {import('@agenticool/cli').OptionDefinition} OptionDefinition */
 
@@ -86,11 +86,6 @@ export function main(args, base = process.cwd()) {
   }
   if (command === 'sync') {
     for (const path of sync(base)) console.log(path);
-    const unlisted = unlistedPullRequestTarget(base);
-    if (unlisted.length)
-      console.error(
-        `Note: add ${unlisted.join(' and ')} to workflowLint.pullRequestTarget in ${POLICY_PATH}. agenticool-workflow-lint accepts a workflow that runs on pull_request_target only when that list names it.`,
-      );
     return 0;
   }
   if (command === 'publish-review') {

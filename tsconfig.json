@@ -12,6 +12,7 @@
   },
   "include": [
     "*.mjs",
+    "scripts/**/*.mjs",
     "test/**/*.mjs",
     "packages/*/src/**/*.mjs",
     "packages/*/test/**/*.mjs"

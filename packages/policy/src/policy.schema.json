@@ -168,39 +168,6 @@
         }
       }
     },
-    "workflowLint": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "areas": {
-          "description": "Workflow file area prefix to the name prefix it requires, such as ci to CI.",
-          "type": "object",
-          "additionalProperties": { "type": "string", "minLength": 1 }
-        },
-        "exclude": {
-          "description": "Vendor workflow files the naming rules skip.",
-          "$ref": "#/$defs/strings"
-        },
-        "pullRequestTarget": {
-          "description": "Workflow files allowed to run on pull_request_target.",
-          "$ref": "#/$defs/strings"
-        },
-        "requiredChecks": {
-          "description": "Jobs a branch ruleset requires as status checks: the job in each workflow file must keep its name and run without a matrix.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["file", "job", "name"],
-            "properties": {
-              "file": { "type": "string", "minLength": 1 },
-              "job": { "type": "string", "minLength": 1 },
-              "name": { "type": "string", "minLength": 1 }
-            }
-          }
-        }
-      }
-    },
     "local": {
       "description": "Repository-only agent sources.",
       "type": "object",

@@ -10,7 +10,7 @@ Shared Claude Code and Codex agents and skills, the generator that renders them 
 | --- | --- |
 | `generate` | Renders every shared and local source for both tools and the shared rules, writes the output into the repository, removes owned output that no source produces any more, and prints every path it owns |
 | `check` | Exits 1 and lists every generated file that is missing, stale, or orphaned, and every synced file that differs from what `sync` writes; writes nothing |
-| `sync` | Writes the repository files listed in [Synced files](#synced-files) and prints every synced path; prints a note when `workflowLint.pullRequestTarget` does not list the tracker workflows that run on `pull_request_target` |
+| `sync` | Writes the repository files listed in [Synced files](#synced-files) and prints every synced path |
 | `resolve --tool <claude\|codex> (--role <role> \| --capability <name>) [--model <model>] [--effort <effort>]` | Prints the resolved model, effort, and spawn parameters as JSON; unsupported values exit 1 |
 | `publish-review --pr <N> --base <sha> --head <sha> --report <file>` | Posts one finished code review to an open pull request, or prints `Review not posted: <reason>` and exits 1 |
 
@@ -35,8 +35,7 @@ Unknown or missing commands exit 2 with the help text; any other usage error exi
 | `sync(base?)`, `syncCheck(base?)` | The `sync` command and its part of `check`; `sync` writes only files whose content differs and returns every synced path, `syncCheck` the synced paths that are missing or differ |
 | `renderSync(base?)` | Every synced file, as a `Map` from repository-relative path to the content `sync` writes, given the files already in the repository |
 | `replaceBlock(text, name, content, comment, path)` | Replaces one marked block in a file's text, or appends it when the file has none; fails on unbalanced markers |
-| `unlistedPullRequestTarget(base?)` | The tracker caller workflows that run on `pull_request_target` and that `workflowLint.pullRequestTarget` does not list |
-| `AGENTS_SECTIONS`, `AGENT_LOCAL_FILES`, `BROWSER_MCP`, `PULL_REQUEST_TARGET` | The shared `AGENTS.md` sections in append order, the `.gitignore` entries, the browser MCP servers and their `npx` arguments, and the caller workflows that run on `pull_request_target` |
+| `AGENTS_SECTIONS`, `AGENT_LOCAL_FILES`, `BROWSER_MCP` | The shared `AGENTS.md` sections in append order, the `.gitignore` entries, and the browser MCP servers and their `npx` arguments |
 | `main(args, base?)` | The command line, returning the exit code |
 
 ## Config keys
@@ -59,7 +58,6 @@ The generator reads `.agents/policy.json` through `@agenticool/policy` and requi
 | `binding.docs.triage` | Where `ISSUE_TRIAGE.md` is written |
 | `binding.features.browserMcp` | When true, `sync` also writes the browser MCP configuration; default false |
 | `labels.extra` | Repository labels added to the base catalog in `.github/labels.json`; one with the name of a base label replaces it |
-| `workflowLint.pullRequestTarget` | Read only for the note; `sync` never edits `policy.json` |
 
 ## Sources
 
@@ -96,10 +94,9 @@ The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `secu
 
 1. Install the package and write `.agents/policy.json` with the keys above, including `binding.tokenEnv`. Every shared role needs a `roles` entry.
 2. Run `npx agenticool-agents generate` and `npx agenticool-agents sync`, and commit the output.
-3. Add the two caller workflows the `sync` note names, `tracker-pr-issue-status.yml` and `tracker-pr-metadata.yml`, to `workflowLint.pullRequestTarget` in `.agents/policy.json` when the repository runs `agenticool-workflow-lint`.
-4. Read the new `AGENTS.md` sections. The first sync appends each one at the end of the file between its markers. Move a block, markers included, to where it belongs, such as the checks block above the repository's checks table, and delete any of the repository's own sections it replaces. Later syncs rewrite each block where it stands.
-5. Run `npx agenticool-agents check` in CI, so a pull request whose generated or synced files are stale fails. CI never regenerates, syncs, or commits on a contributor's behalf.
-6. Rerun `npx agenticool-agents sync` after upgrading `@agenticool/agents` or `@agenticool/tracker`, or after changing `binding` or `labels.extra`, and commit the result.
+3. Read the new `AGENTS.md` sections. The first sync appends each one at the end of the file between its markers. Move a block, markers included, to where it belongs, such as the checks block above the repository's checks table, and delete any of the repository's own sections it replaces. Later syncs rewrite each block where it stands.
+4. Run `npx agenticool-agents check` in CI, so a pull request whose generated or synced files are stale fails. CI never regenerates, syncs, or commits on a contributor's behalf.
+5. Rerun `npx agenticool-agents sync` after upgrading `@agenticool/agents` or `@agenticool/tracker`, or after changing `binding` or `labels.extra`, and commit the result.
 
 | Output | Tool |
 | --- | --- |
@@ -119,7 +116,7 @@ Generated agents and skills carry a header naming their source, and the shared r
 | `.github/ISSUE_TEMPLATE/*.yml`, `.github/pull_request_template.md` | The tracker issue forms and pull request template | Whole file |
 | `binding.docs.triage` | The tracker `ISSUE_TRIAGE.md` | Whole file |
 | `.github/workflows/tracker-*.yml` | The tracker caller workflows, pinned to the installed tracker release; in the repository that hosts the reusable workflows (`binding.repository` is `agenticool/agenticool`), they call them locally (`./.github/workflows/_tracker-*.yml`) with `tracker_version: 'workspace'`, so the jobs run the workspace tracker | Whole file |
-| `AGENTS.md` | The shared sections `checks` (how to run checks, without the repository's table), `delivery` (Autonomous delivery), `code` (Code and comments, with the current-state docs rule), `workflows` (Repository agent workflows), `binding` (Delivery binding), `branches` (Branch names), and `workflow-names` (GitHub Actions workflow names, the rules `agenticool-workflow-lint` checks), from `templates/agents-md/` with placeholders and feature sections resolved | Each section between `<!-- agenticool-agents sync: begin <name> -->` and `<!-- agenticool-agents sync: end <name> -->` |
+| `AGENTS.md` | The shared sections `checks` (how to run checks, without the repository's table), `delivery` (Autonomous delivery), `code` (Code and comments, with the current-state docs rule), `workflows` (Repository agent workflows), `binding` (Delivery binding), and `branches` (Branch names), from `templates/agents-md/` with placeholders and feature sections resolved | Each section between `<!-- agenticool-agents sync: begin <name> -->` and `<!-- agenticool-agents sync: end <name> -->` |
 | `.gitignore` | `.claude/worktrees/`, `.codex/worktrees/`, `CLAUDE.local.md`, `.claude/settings.local.json`, and `.claude/scheduled_tasks.lock`, plus `.playwright-mcp/` with `binding.features.browserMcp` | The lines between `# agenticool-agents sync: begin agent-local` and its end marker |
 | `.mcp.json` | The `playwright` and `playwriter` servers, only with `binding.features.browserMcp` | Those two entries under `mcpServers`; other servers stay |
 | `.codex/config.toml` | `[mcp_servers.playwright]` and `[mcp_servers.playwriter]`, only with `binding.features.browserMcp` | The lines between `# agenticool-agents sync: begin browser-mcp` and its end marker |

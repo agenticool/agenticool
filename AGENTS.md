@@ -4,7 +4,7 @@ These instructions apply to every coding agent, including Claude and Codex.
 
 agenticool is an npm workspaces monorepo of standalone `@agenticool/*` packages under `packages/<name>/`: shared workflow tooling for GitHub repositories that use Claude Code and Codex agents. This repository consumes its own packages: `.agents/policy.json` binds it, and the agent files, tracker files, and the shared sections below come from `npx agenticool-agents generate` and `npx agenticool-agents sync`, which resolve to the local workspaces.
 
-Run `npm run check` before pushing. It runs the Prettier check, ESLint, `tsc --checkJs`, every test with the 90% coverage gate, `agenticool-agents check`, and `agenticool-workflow-lint`. After changing `.agents/policy.json`, the agent sources in `packages/agents`, or the tracker templates, rerun `generate` and `sync` and commit the output.
+Run `npm run check` before pushing. It runs the Prettier check, ESLint, `tsc --checkJs`, every test with the 90% coverage gate, `agenticool-agents check`, and the workflow lint in `scripts/workflow-lint.mjs`. After changing `.agents/policy.json`, the agent sources in `packages/agents`, or the tracker templates, rerun `generate` and `sync` and commit the output.
 
 Each package releases independently through release-please, which reads the Conventional Commit title of each squash-merged pull request, scoped to the package, such as `feat(tracker): ...`. Never edit package versions or `.release-please-manifest.json`.
 
@@ -88,14 +88,10 @@ For issue work, never type a branch name by hand. Print it with `npx agenticool-
 
 <!-- agenticool-agents sync: end branches -->
 
-<!-- agenticool-agents sync: begin workflow-names -->
-
 ## GitHub Actions workflow names
 
-- Workflow files are named `<area>-<purpose>.yml` in lowercase kebab-case, and each workflow's `name` starts with the area's prefix and `: `, as in `tracker-issue-states.yml`, named `Tracker: reconcile issue states`. `workflowLint.areas` in `.agents/policy.json` maps each area to its prefix; add an area there before you use it.
+- Workflow files are named `<area>-<purpose>.yml` in lowercase kebab-case, and each workflow's `name` starts with the area's prefix and `: `, as in `tracker-issue-states.yml`, named `Tracker: reconcile issue states`. `CONFIG.areas` in `scripts/workflow-lint.mjs` maps each area to its prefix; add an area there before you use it.
 - A reusable workflow, one that runs on `workflow_call`, has a file name that starts with `_` and a `name` that ends in ` (reusable)`, as in `_tracker-issue-states.yml`, named `Tracker: reconcile issue states (reusable)`. A workflow that runs only on `workflow_call` must follow this rule; no workflow without `workflow_call` starts with `_` or ends its name with ` (reusable)`.
 - Job IDs are kebab-case. Every job and every step has a name that says what it does and starts with a capital letter; a job name may start with an expression instead.
 - A workflow that `pull_request`, `push`, or `workflow_call` does not start sets a `run-name` with an expression that names its subject. A `workflow_run` trigger names an existing workflow by its `name`.
-- Vendor workflows listed in `workflowLint.exclude` keep the vendor's names. `npx agenticool-workflow-lint` checks these rules.
-
-<!-- agenticool-agents sync: end workflow-names -->
+- `npm run workflows:lint` checks these rules, with job timeouts, checkout credentials, the Node version source, and `pull_request_target` safety.

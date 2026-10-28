@@ -16,7 +16,6 @@ test('the repository policy validates for every section its packages read', () =
       'roles',
       'supported',
       'implementationEffort',
-      'workflowLint',
     ],
   });
   assert.equal(binding(policy).repository, 'agenticool/agenticool');

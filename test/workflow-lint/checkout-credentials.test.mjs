@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MISSING } from '../src/rules/checkout-credentials.mjs';
+import { MISSING } from '../../scripts/workflow-lint/rules/checkout-credentials.mjs';
 import { lint, W } from './helpers.mjs';
 
 /** @param {string} steps */

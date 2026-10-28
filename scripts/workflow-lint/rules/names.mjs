@@ -38,8 +38,7 @@ export function check({ workflows, config }) {
       if (!areas[area]) fail(`has unknown area ${area}`);
       else if (typeof name === 'string' && !name.startsWith(`${areas[area]}: `))
         fail(`name must start with ${areas[area]}:`);
-      // A workflow that also runs on its own events, such as a shared PR
-      // check that consumers call, keeps a plain name.
+      // A workflow that also runs on its own events keeps a plain name.
       if (reusable && !events.includes('workflow_call'))
         fail('only reusable workflows start with _');
       if (!reusable && events.length === 1 && events[0] === 'workflow_call')

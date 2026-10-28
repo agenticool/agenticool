@@ -10,7 +10,6 @@ import {
   AGENTS_SECTIONS,
   generate,
   main,
-  PULL_REQUEST_TARGET,
   render,
   renderSync,
   replaceBlock,
@@ -112,7 +111,7 @@ test('a first sync writes the tracker templates, the AGENTS.md sections, and the
       read(base, `.github/ISSUE_TEMPLATE/${name}.yml`),
       renderTemplate(`ISSUE_TEMPLATE/${name}.yml`, value),
     );
-  for (const name of PULL_REQUEST_TARGET)
+  for (const name of ['tracker-pr-issue-status.yml', 'tracker-pr-metadata.yml'])
     assert.equal(
       read(base, `.github/workflows/${name}`),
       renderTemplate(`workflows/${name}`, value),
@@ -564,11 +563,7 @@ test('AGENTS.md names the review packet that leaf delivery carries', () => {
   assert.ok(read(base, target).includes(packet));
 });
 
-test('the sync command prints every synced path and a note for unlisted pull_request_target workflows', () => {
-  assert.deepEqual(PULL_REQUEST_TARGET, [
-    'tracker-pr-issue-status.yml',
-    'tracker-pr-metadata.yml',
-  ]);
+test('the sync command prints every synced path', () => {
   const base = consumer(bound(policy));
   const result = spawnSync(process.execPath, [BIN, 'sync'], {
     cwd: base,
@@ -579,28 +574,7 @@ test('the sync command prints every synced path and a note for unlisted pull_req
     result.stdout.trim().split('\n'),
     [...SYNCED, 'ISSUE_TRIAGE.md'].sort(),
   );
-  assert.equal(
-    result.stderr,
-    'Note: add tracker-pr-issue-status.yml and tracker-pr-metadata.yml to workflowLint.pullRequestTarget in .agents/policy.json. agenticool-workflow-lint accepts a workflow that runs on pull_request_target only when that list names it.\n',
-  );
-  const partly = consumer({
-    ...bound(policy),
-    workflowLint: { pullRequestTarget: ['tracker-pr-metadata.yml'] },
-  });
-  assert.match(
-    capture(['sync'], partly).stderr,
-    /^Note: add tracker-pr-issue-status\.yml to workflowLint/,
-  );
-  const listed = consumer({
-    ...bound(policy),
-    workflowLint: { pullRequestTarget: PULL_REQUEST_TARGET },
-  });
-  assert.equal(capture(['sync'], listed).stderr, '');
-  // The note never edits the policy.
-  assert.equal(
-    read(base, '.agents/policy.json'),
-    JSON.stringify(bound(policy)),
-  );
+  assert.equal(result.stderr, '');
 });
 
 // CONTRIBUTING.md is a guide for people; agents load only the files below and
@@ -624,23 +598,12 @@ test('no shared source, AGENTS.md section, tracker template, or generated file n
     assert.doesNotMatch(content, /CONTRIBUTING/, path);
 });
 
-test('the synced files carry the workflow naming, Status, and dependency rules', () => {
+test('the synced files carry the Status and dependency rules, and no workflow naming rules', () => {
   const base = synced();
-  const naming = section(
+  assert.doesNotMatch(
     read(base, 'AGENTS.md'),
-    'GitHub Actions workflow names',
+    /workflow names|<area>-<purpose>/,
   );
-  for (const rule of [
-    '`<area>-<purpose>.yml`',
-    '`workflowLint.areas`',
-    'starts with `_` and a `name` that ends in ` (reusable)`',
-    'Job IDs are kebab-case',
-    'Every job and every step has a name',
-    '`run-name` with an expression',
-    '`workflowLint.exclude`',
-    '`npx agenticool-workflow-lint`',
-  ])
-    assert.ok(naming.includes(rule), rule);
   const triage = read(base, 'ISSUE_TRIAGE.md');
   const status = section(triage, 'Status');
   for (const name of ['Inbox', 'Ready', 'In progress', 'In review', 'Done'])

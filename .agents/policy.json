@@ -1,5 +1,5 @@
 {
-  "description": "Repository binding, model and effort policy, and workflow lint config for this repository, which consumes its own packages. agenticool-agents generates and syncs the agent files from it, and agenticool-workflow-lint reads workflowLint.",
+  "description": "Repository binding and model and effort policy for this repository, which consumes its own packages. agenticool-agents generates and syncs the agent files from it.",
   "binding": {
     "namespace": "agenticool",
     "label": "Agenticool",
@@ -171,33 +171,5 @@
         ]
       }
     }
-  },
-  "workflowLint": {
-    "areas": {
-      "ci": "CI",
-      "release": "Release",
-      "tracker": "Tracker"
-    },
-    "pullRequestTarget": [
-      "tracker-pr-issue-status.yml",
-      "tracker-pr-metadata.yml"
-    ],
-    "requiredChecks": [
-      {
-        "file": "ci-checks.yml",
-        "job": "run-checks",
-        "name": "Run format, lint, typecheck, and tests"
-      },
-      {
-        "file": "ci-pr-title.yml",
-        "job": "check-pr-title",
-        "name": "Check PR title follows Conventional Commits"
-      },
-      {
-        "file": "ci-secret-scan.yml",
-        "job": "scan-secrets",
-        "name": "Scan commits for secrets"
-      }
-    ]
   }
 }

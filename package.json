@@ -14,10 +14,10 @@
     "format:check": "prettier . --check --ignore-unknown",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test --experimental-test-coverage --test-coverage-include=\"packages/*/src/**/*.mjs\" --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 \"test/**/*.test.mjs\" \"packages/*/test/**/*.test.mjs\"",
+    "test": "node --test --experimental-test-coverage --test-coverage-include=\"packages/*/src/**/*.mjs\" --test-coverage-include=\"scripts/**/*.mjs\" --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 \"test/**/*.test.mjs\" \"packages/*/test/**/*.test.mjs\"",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run agents:check && npm run workflows:lint",
     "agents:check": "agenticool-agents check",
-    "workflows:lint": "agenticool-workflow-lint"
+    "workflows:lint": "node scripts/workflow-lint.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -27,6 +27,7 @@
     "eslint-config-prettier": "10.1.8",
     "globals": "17.13.0",
     "prettier": "3.9.10",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "yaml": "2.9.1"
   }
 }
