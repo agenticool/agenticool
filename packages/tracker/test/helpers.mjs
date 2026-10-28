@@ -91,7 +91,7 @@ export function notFound(data, path, extra = []) {
  * @param {Record<string, any>} policy
  * @param {unknown} fields
  */
-function projectAnswer(query, variables, policy, fields) {
+export function projectAnswer(query, variables, policy, fields) {
   const board = project(policy);
   assert.ok(query.includes(`${board.ownerType}(login: $owner)`), query);
   assert.equal(variables.owner, board.owner);

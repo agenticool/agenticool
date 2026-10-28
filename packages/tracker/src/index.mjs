@@ -28,3 +28,24 @@ export {
   SEVERITIES,
   SWEEP_FILTER,
 } from './triage.mjs';
+export { MARKER, reconcileContainers } from './containers.mjs';
+export { addToProject, INITIAL_STATUS, sweep } from './membership.mjs';
+export {
+  closingIssues,
+  moveIssuesToReview,
+  sourceStatuses,
+  TRUSTED_AUTHORS,
+} from './pr-status.mjs';
+export {
+  copyMetadata,
+  linkedIssues,
+  metadataGraphql,
+  readMetadata,
+  referenceText,
+} from './pr-metadata.mjs';
+export {
+  isReleasePullRequest,
+  RELEASE_BRANCH,
+  releasedComponents,
+  releaseLabels,
+} from './release-please.mjs';

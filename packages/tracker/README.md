@@ -2,7 +2,7 @@
 
 Keep a GitHub Project in step with issues and pull requests: triage, Done and Inbox, containers, membership, closing-issue status, and issue metadata on pull requests.
 
-The package exports the tracker core and the triage reconcilers. Every GitHub call goes through `@agenticool/github`, and every repository and project fact comes from the policy that `@agenticool/policy` loads.
+The package exports the tracker core, the triage reconcilers, container closure, project membership, closing-issue status, and pull request metadata. Every GitHub call goes through `@agenticool/github`, and every repository and project fact comes from the policy that `@agenticool/policy` loads.
 
 ## Bins
 
@@ -19,6 +19,7 @@ Load the policy with `loadPolicy(base, { sections: ['binding.repository', 'bindi
 | `binding.project.ownerType` | `user` (default) reads the board through GraphQL `user(login:)`, `organization` through `organization(login:)` |
 | `binding.project.name` | The project name in error messages |
 | `binding.tokenEnv` | The token variable that failure messages redact |
+| `binding.features.releasePlease` | `true` gives the release pull request package labels instead of issue labels (default `false`) |
 
 ## Exports
 
@@ -55,3 +56,45 @@ Each reconciler takes `{ api, policy, dryRun = true, issueNumber?, log?, warn? }
 | `SWEEP_FILTER`, `SETTLED_STATUSES` | The triage sweep's project filter and the statuses it excludes |
 | `DONE_FILTERS` | The two filters a Done sweep lists |
 | `SEVERITIES` | The supported `severity:` labels |
+
+### Containers
+
+| Export | Purpose |
+| --- | --- |
+| `reconcileContainers({ api, policy, dryRun = true, issueNumber?, log?, warn? })` | Closes open containers whose sub-issues are all closed, setting Done, and reopens containers it closed when a sub-issue reopens, setting Ready. Without `issueNumber` it sweeps every issue; with one it reads only that issue's subtree and ancestors. Returns `{ updated }` |
+| `MARKER` | The `automation: container-closed` label that marks a container this automation closed. It is added before closing, kept on a closed container, and removed only from an open, incomplete container after a fresh read. A container deleted or transferred during the run is skipped with a warning |
+
+### Membership
+
+| Export | Purpose |
+| --- | --- |
+| `addToProject({ api, policy, kind, number, dryRun = true, log? })` | Adds one issue (`kind` must be `issue`) to the project and sets Status `Inbox` when the item has none; an existing Status never changes. Returns the item's REST ID, or `null` on a dry run |
+| `sweep({ api, policy, dryRun = true, log?, logError?, warn? })` | Adds every open issue missing from the project. An issue deleted before its add is a warning; any other failure is logged, the rest are added, and the sweep then fails. Returns `{ missing, failed }` |
+| `INITIAL_STATUS` | `Inbox` |
+
+### Pull request status
+
+| Export | Purpose |
+| --- | --- |
+| `moveIssuesToReview({ api, policy, number, dryRun = true, log? })` | Moves the open issues an open, ready pull request closes to In review. Every write re-reads the pull request and the item first |
+| `closingIssues(body, repository)` | Issue numbers that follow a closing keyword in a description, ignoring comments, code, and parent lines |
+| `sourceStatuses(authorAssociation)`, `TRUSTED_AUTHORS` | Owners, members, and collaborators move Ready and In progress issues; other authors move only In progress issues |
+
+### Pull request metadata
+
+| Export | Purpose |
+| --- | --- |
+| `copyMetadata({ api, policy, number, dryRun = true, log? })` | Adds the labels, assignees, and single shared milestone of the issues an open pull request references, keeping what the pull request already has. A description edit during the run stops it before any write |
+| `metadataGraphql(query, variables, run?)` | GraphQL client that reads a reference to a missing issue or pull request as `null` |
+| `linkedIssues(body, repository)`, `referenceText(body)` | Issue references of the repository in a description, and the description without comments, code, and parent lines |
+| `readMetadata(api, id)` | Label and assignee IDs of an issue or pull request |
+
+### Release Please
+
+Used by `copyMetadata` only when `binding.features.releasePlease` is `true`.
+
+| Export | Purpose |
+| --- | --- |
+| `RELEASE_BRANCH`, `isReleasePullRequest(pr)` | The release pull request is the same-repository branch `release-please--branches--main` |
+| `releasedComponents(config, base, head)` | Components in `release-please-config.json` whose `.release-please-manifest.json` version differs between two commits |
+| `releaseLabels(api, policy, pr, log)` | IDs of the existing `package: <component>` labels for the components the release pull request changes |
