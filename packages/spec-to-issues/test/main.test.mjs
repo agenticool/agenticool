@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { prefix } from '@agenticool/policy';
@@ -14,11 +14,13 @@ function setup() {
   const state = join(directory, 'state');
   const text = readFileSync(SPEC, 'utf8');
   const plan = parse(text);
-  const digest = recordPlan(state, {
+  const { digest } = recordPlan(state, {
     spec: SPEC,
     text,
     plan,
     bodies: render(plan, text, { prefix: prefix(load('user')) }),
+    groups: { 'Phase 0': [['P0.1'], ['P0.2']] },
+    assignee: 'sam',
   });
   /** @type {string[]} */
   const out = [];
@@ -34,35 +36,22 @@ function setup() {
       log: (message) => out.push(message),
       error: (message) => err.push(message),
     });
-  return { fake, directory, state, digest, out, err, cli };
+  return { fake, state, digest, out, err, cli };
 }
 
 test('confirm, then file, prints every issue with its URL', async () => {
-  const { directory, state, digest, out, err, cli } = setup();
-  const groups = join(directory, 'groups.json');
-  writeFileSync(groups, JSON.stringify({ 'Phase 0': [['P0.1'], ['P0.2']] }));
+  const { fake, state, digest, out, err, cli } = setup();
   assert.equal(await cli(['confirm', digest, '--state', state]), 0);
   assert.equal(out.pop(), `Confirmed plan ${digest}.`);
-  assert.equal(
-    await cli([
-      'file',
-      SPEC,
-      '--state',
-      state,
-      '--assignee',
-      'sam',
-      '--groups',
-      groups,
-    ]),
-    0,
-    err.join('\n'),
-  );
+  assert.equal(await cli(['file', SPEC, '--state', state]), 0, err.join('\n'));
   assert.ok(
     out.includes(
       'Plan: #41 Notes service delivery plan https://github.com/example/notes/issues/41',
     ),
   );
   assert.equal(out.at(-1), `Filing complete. State: ${state}`);
+  assert.ok(fake.issues.every((issue) => issue.assignees[0] === 'sam'));
+  assert.match(fake.issues[1].body, /- g1: #46\n- g2: #47\n/);
   assert.equal(await cli(['resume', SPEC, '--state', state]), 0);
 });
 
@@ -79,7 +68,7 @@ test('a failed filing names the resume command once state exists', async () => {
     ),
   );
   assert.equal(await cli(['file', SPEC, '--state', join(state, 'other')]), 1);
-  assert.match(err.pop() ?? '', /^No confirmed plan digest [0-9a-f]+ for/);
+  assert.match(err.pop() ?? '', /^No confirmed plan for/);
 });
 
 test('usage errors and help', async () => {
@@ -94,8 +83,8 @@ test('usage errors and help', async () => {
     /^Expected confirm <digest>, file <spec>, or resume <spec>/,
   );
   assert.equal(
-    await cli(['resume', SPEC, '--state', state, '--groups', 'g.json']),
+    await cli(['file', SPEC, '--state', state, '--groups', 'g.json']),
     1,
   );
-  assert.match(err.pop() ?? '', /^--assignee and --groups apply only to file/);
+  assert.match(err.pop() ?? '', /^Unknown option --groups/);
 });

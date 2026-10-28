@@ -1,5 +1,4 @@
 export {
-  checkGroups,
   fileSpec,
   independenceRecord,
   PROJECT_POLL,
@@ -8,6 +7,8 @@ export {
 export { main } from './main.mjs';
 export { CREATE_GAP, restClient, RETRIES, WRITE_GAP } from './rest.mjs';
 export {
+  checkGroups,
+  confirmationDigest,
   confirmPlan,
   planDigest,
   readPlan,

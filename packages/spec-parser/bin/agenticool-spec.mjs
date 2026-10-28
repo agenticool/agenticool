@@ -15,9 +15,9 @@ import {
 const LABELS_PATH = '.github/labels.json';
 const FILING = ['confirm', 'file', 'resume'];
 const cli = defineCli(
-  `Usage: agenticool-spec plan <spec> [--bodies <dir>] [--json <file>] [--state <dir>]
+  `Usage: agenticool-spec plan <spec> [--bodies <dir>] [--json <file>] [--state <dir> [--groups <file>] [--assignee <login>]]
        agenticool-spec confirm <digest> --state <dir>
-       agenticool-spec file <spec> --state <dir> [--assignee <login>] [--groups <file>]
+       agenticool-spec file <spec> --state <dir>
        agenticool-spec resume <spec> --state <dir>
 
 confirm, file, resume, and plan --state need @agenticool/spec-to-issues.`,
@@ -34,7 +34,16 @@ confirm, file, resume, and plan --state need @agenticool/spec-to-issues.`,
     state: {
       type: 'string',
       description:
-        'Also record the plan digest in this state directory for confirm and file',
+        'Also record the plan, groups, and assignee in this state directory for confirm and file',
+    },
+    groups: {
+      type: 'string',
+      description:
+        'With --state: JSON independence groups per epic, such as { "Phase 0": [["P0.1", "P0.3"], ["P0.2"]] }',
+    },
+    assignee: {
+      type: 'string',
+      description: 'With --state: assign every filed issue to this login',
     },
   },
 );
@@ -79,6 +88,11 @@ async function planCommand() {
   const { options, positionals } = parseCli(process.argv.slice(2), cli);
   if (positionals[0] !== 'plan' || positionals.length !== 2)
     throw cliError(cli, 'Expected plan <spec>');
+  if (
+    typeof options.state !== 'string' &&
+    (options.groups !== undefined || options.assignee !== undefined)
+  )
+    throw cliError(cli, '--groups and --assignee need --state');
   // Rendered bodies are drafts and never land in tracked paths.
   const bodiesDir =
     typeof options.bodies === 'string' ? resolve(options.bodies) : null;
@@ -122,17 +136,23 @@ async function planCommand() {
       for (const [key, body] of Object.entries(bodies))
         writeFileSync(join(bodiesDir, `${key}.md`), `${body}\n`);
     }
-    const digest =
-      typeof options.state === 'string'
-        ? (await filing()).recordPlan(options.state, {
-            spec: positionals[1],
-            text,
-            plan,
-            bodies,
-          })
-        : null;
     process.stdout.write(
-      `${printTree(plan)}\n${digest ? `\nPlan digest: ${digest}\n` : ''}`,
+      `${
+        typeof options.state === 'string'
+          ? (await filing()).recordPlan(options.state, {
+              spec: positionals[1],
+              text,
+              plan,
+              bodies,
+              groups:
+                typeof options.groups === 'string'
+                  ? JSON.parse(readFileSync(options.groups, 'utf8'))
+                  : {},
+              assignee:
+                typeof options.assignee === 'string' ? options.assignee : null,
+            }).output
+          : printTree(plan)
+      }\n`,
     );
   }
 }

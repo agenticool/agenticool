@@ -4,6 +4,7 @@ import {
   copyFileSync,
   existsSync,
   readFileSync,
+  writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -40,6 +41,7 @@ const GROUPS = {
  * A confirmed plan in a fresh state directory and a fake GitHub to file it.
  * @param {{
  *   policyName?: string, spec?: string, confirm?: boolean,
+ *   groups?: unknown, assignee?: string,
  *   fake?: ConstructorParameters<typeof FakeGitHub>[0],
  * }} [options]
  */
@@ -47,6 +49,8 @@ function setup({
   policyName = 'user',
   spec = SPEC,
   confirm = true,
+  groups,
+  assignee,
   fake: fakeOptions,
 } = {}) {
   const policy = load(policyName);
@@ -59,7 +63,10 @@ function setup({
   const plan = parse(text);
   const agentPrefix = policy.binding.namespace ? prefix(policy) : '';
   const bodies = render(plan, text, { prefix: agentPrefix });
-  const digest = recordPlan(state, { spec, text, plan, bodies });
+  /** @param {{ groups?: unknown, assignee?: string }} [choices] */
+  const replan = (choices = {}) =>
+    recordPlan(state, { spec, text, plan, bodies, ...choices }).digest;
+  const digest = replan({ groups, assignee });
   if (confirm) confirmPlan(state, digest);
   /** @type {string[]} */
   const logs = [];
@@ -93,7 +100,18 @@ function setup({
       (_, other) =>
         `#${filed.items.find((item) => item.key === other)?.number}`,
     );
-  return { policy, fake, state, plan, logs, file, read, expected, agentPrefix };
+  return {
+    policy,
+    fake,
+    state,
+    plan,
+    logs,
+    file,
+    read,
+    expected,
+    agentPrefix,
+    replan,
+  };
 }
 
 /**
@@ -162,7 +180,7 @@ function assertFiled({ fake, plan, expected }, filed, groups = {}) {
 }
 
 test('file runs every stage in order and records state after each write', async () => {
-  const context = setup();
+  const context = setup({ assignee: 'sam', groups: GROUPS });
   const { fake, state, file, read, plan } = context;
   // Each write starts only after the previous write is in state.json.
   let creates = 0;
@@ -187,7 +205,7 @@ test('file runs every stage in order and records state after each write', async 
     else if (/\/items\/\d+$/.test(call.path))
       assert.equal(saved.items.filter((i) => i.fieldsSet).length, fields++);
   };
-  const filed = await file({ assignee: 'sam', groups: GROUPS });
+  const filed = await file();
 
   assert.match(fake.calls[0].path, /^repos\/example\/notes\/labels\?/);
   const creates_ = fake.writes.filter(
@@ -288,10 +306,10 @@ test('a prediction mismatch keeps creating, then patches every stale body', asyn
 });
 
 test('resume after a stop between a create and its state write adopts the issue by title', async () => {
-  const context = setup();
+  const context = setup({ groups: GROUPS });
   const { fake, file, read, logs } = context;
   fake.stopAfterCreate = 5;
-  await assert.rejects(file({ groups: GROUPS }), GitHubError);
+  await assert.rejects(file(), GitHubError);
   const stopped = read();
   assert.equal(stopped.items.filter((i) => i.number !== null).length, 4);
   assert.equal(fake.issues.length, 5);
@@ -315,12 +333,13 @@ test('resume stops when two issues share an unrecorded title', async () => {
 test('resume refuses another specification, a changed specification, a changed plan, and new groups', async () => {
   const spec = join(temporary(), 'spec.md');
   copyFileSync(SPEC, spec);
-  const { fake, file, state, policy } = setup({ spec });
+  const { fake, file, state, policy, replan } = setup({ spec });
   fake.stopAfterCreate = 1;
   await assert.rejects(file(), GitHubError);
+  confirmPlan(state, replan({ groups: GROUPS }));
   await assert.rejects(
-    file({ resume: true, groups: GROUPS }),
-    /Groups are already recorded/,
+    file(),
+    /The confirmed groups or assignee differ from the ones .* recorded when filing began/,
   );
   await assert.rejects(
     file({ resume: true, spec: SPEC }),
@@ -345,11 +364,36 @@ test('resume needs a state file', async () => {
 
 test('file refuses to run without a confirmed plan digest', async () => {
   const { fake, file, state } = setup({ confirm: false });
-  await assert.rejects(file(), /No confirmed plan digest/);
+  await assert.rejects(file(), /No confirmed plan for/);
   const empty = join(temporary(), 'none');
-  await assert.rejects(file({ state: empty }), /No confirmed plan digest/);
+  await assert.rejects(file({ state: empty }), /No confirmed plan for/);
   assert.equal(fake.calls.length, 0);
   assert.ok(!existsSync(join(state, 'state.json')));
+});
+
+test('changing the groups or assignee after confirm makes file refuse', async () => {
+  const { fake, file, state, replan } = setup({
+    groups: GROUPS,
+    assignee: 'sam',
+  });
+  // Re-running plan with other choices resets the confirmation.
+  replan({ groups: GROUPS, assignee: 'other' });
+  await assert.rejects(file(), /No confirmed plan for/);
+  // Editing plan.json after confirm no longer matches the confirmed digest.
+  for (const edit of [
+    { groups: { 'Phase 0': [['P0.1'], ['P0.2', 'P0.3']] } },
+    { assignee: 'other' },
+    { assignee: null },
+  ]) {
+    confirmPlan(state, replan({ groups: GROUPS, assignee: 'sam' }));
+    const path = join(state, 'plan.json');
+    writeFileSync(
+      path,
+      JSON.stringify({ ...JSON.parse(readFileSync(path, 'utf8')), ...edit }),
+    );
+    await assert.rejects(file(), /No confirmed plan for/);
+  }
+  assert.equal(fake.calls.length, 0);
 });
 
 test('a label missing from the live repository stops filing before any write', async () => {
@@ -366,7 +410,7 @@ test('a label missing from the live repository stops filing before any write', a
 
 test('an unassignable assignee or a missing project field or option stops filing', async () => {
   await assert.rejects(
-    setup().file({ assignee: 'nobody' }),
+    setup({ assignee: 'nobody' }).file(),
     /nobody cannot be assigned issues in example\/notes/,
   );
   const fields = new FakeGitHub().fields;
@@ -391,8 +435,7 @@ test('an unassignable assignee or a missing project field or option stops filing
     }).file(),
     /Notes delivery has no Priority option P3, which Phase 2 uses/,
   );
-  const failing = setup();
-  failing.fake.assignable = [];
+  const failing = setup({ assignee: 'sam' });
   const answer = failing.fake.answer.bind(failing.fake);
   failing.fake.answer = (call) => {
     if (!call.path.includes('/assignees/')) return answer(call);
@@ -401,7 +444,7 @@ test('an unassignable assignee or a missing project field or option stops filing
       status: 1,
     });
   };
-  await assert.rejects(failing.file({ assignee: 'sam' }), /HTTP 500/);
+  await assert.rejects(failing.file(), /HTTP 500/);
 });
 
 test('an organization project item that never appears is added after one wait', async () => {

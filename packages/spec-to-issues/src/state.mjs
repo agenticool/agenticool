@@ -9,10 +9,15 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { printTree } from '@agenticool/spec-parser';
 
 /**
  * @typedef {ReturnType<typeof import('@agenticool/spec-parser').parse>} Plan
- * @typedef {{ spec: string, specSha256: string, planSha256: string, confirmed: boolean }} PlanRecord
+ * @typedef {Record<string, string[][]>} Groups
+ * @typedef {{
+ *   spec: string, specSha256: string, planSha256: string, groups: Groups,
+ *   assignee: string | null, digest: string, confirmed: string | null,
+ * }} PlanRecord
  */
 
 /** @param {string} text */
@@ -58,22 +63,120 @@ export function stateDirectory(directory) {
 }
 
 /**
- * Records the digest of a clean plan in `<directory>/plan.json`, unconfirmed,
- * and returns it.
- * @param {string} directory
- * @param {{ spec: string, text: string, plan: Plan, bodies: Record<string, string> }} built
+ * Validates a groups file: each key is an epic, each group a non-empty list
+ * of that epic's direct leaf children, and no leaf appears twice.
+ * @param {Plan} plan
+ * @param {unknown} groups
+ * @returns {Groups}
  */
-export function recordPlan(directory, { spec, text, plan, bodies }) {
+export function checkGroups(plan, groups) {
+  if (!groups || typeof groups !== 'object' || Array.isArray(groups))
+    throw new Error(
+      'The groups file must be a JSON object keyed by epic, such as { "Phase 0": [["P0.1"]] }',
+    );
+  for (const [key, list] of Object.entries(groups)) {
+    if (!plan.items.some((item) => item.key === key && item.kind === 'epic'))
+      throw new Error(`Groups name ${key}, which is not an epic of the plan`);
+    if (
+      !Array.isArray(list) ||
+      !list.length ||
+      !list.every(
+        (group) =>
+          Array.isArray(group) &&
+          group.length &&
+          group.every((id) => typeof id === 'string'),
+      )
+    )
+      throw new Error(
+        `Groups for ${key} must be a list of non-empty lists of Plan IDs`,
+      );
+    const seen = new Set();
+    for (const id of list.flat()) {
+      if (
+        !plan.items.some(
+          (item) =>
+            item.key === id && item.kind === 'leaf' && item.parent === key,
+        )
+      )
+        throw new Error(`Groups for ${key} name ${id}, which is not its leaf`);
+      if (seen.has(id)) throw new Error(`Groups for ${key} name ${id} twice`);
+      seen.add(id);
+    }
+  }
+  return /** @type {Groups} */ (groups);
+}
+
+/**
+ * The digest a person confirms: the plan, the independence groups with epics
+ * in sorted order, and the assignee.
+ * @param {Pick<PlanRecord, 'planSha256' | 'groups' | 'assignee'>} record
+ */
+export const confirmationDigest = ({ planSha256, groups, assignee }) =>
+  sha256(
+    `${planSha256}\n${JSON.stringify(
+      Object.keys(groups)
+        .sort()
+        .map((key) => [key, groups[key]]),
+    )}\n${assignee ?? ''}`,
+  );
+
+/**
+ * Records a clean plan, its groups, and its assignee in `<directory>/plan.json`,
+ * unconfirmed, and returns the confirmation digest with the text to print:
+ * the tree, each epic's groups, the totals, the assignee, the state
+ * directory, and the digest.
+ * @param {string} directory
+ * @param {{
+ *   spec: string, text: string, plan: Plan, bodies: Record<string, string>,
+ *   groups?: unknown, assignee?: string | null,
+ * }} built
+ */
+export function recordPlan(
+  directory,
+  { spec, text, plan, bodies, groups = {}, assignee = null },
+) {
+  const checked = checkGroups(plan, groups);
   const planSha256 = planDigest(plan, bodies);
+  const digest = confirmationDigest({
+    planSha256,
+    groups: checked,
+    assignee,
+  });
   /** @type {PlanRecord} */
   const record = {
     spec: resolve(spec),
     specSha256: sha256(text),
     planSha256,
-    confirmed: false,
+    groups: checked,
+    assignee,
+    digest,
+    confirmed: null,
   };
-  writeJson(join(stateDirectory(directory), 'plan.json'), record);
-  return planSha256;
+  const absolute = stateDirectory(directory);
+  writeJson(join(absolute, 'plan.json'), record);
+  const tree = printTree(plan);
+  const totals = tree.lastIndexOf('\n\nTotals: ');
+  const epics = plan.items
+    .filter((item) => item.kind === 'epic')
+    .map(
+      (item) =>
+        `  ${item.key}: ${
+          checked[item.key]
+            ?.map((group, index) => `g${index + 1} ${group.join(' ')}`)
+            .join('; ') ?? 'none'
+        }`,
+    );
+  const output = [
+    tree.slice(0, totals),
+    '',
+    'Independence groups:',
+    ...epics,
+    tree.slice(totals + 2),
+    `Assignee: ${assignee ?? 'none'}`,
+    `State: ${absolute}`,
+    `Plan digest: ${digest}`,
+  ].join('\n');
+  return { digest, output };
 }
 
 /**
@@ -87,7 +190,7 @@ export function readPlan(directory) {
 }
 
 /**
- * Marks the recorded plan confirmed when `digest` is its digest.
+ * Marks the recorded plan confirmed when `digest` is its confirmation digest.
  * @param {string} directory
  * @param {string} digest
  */
@@ -97,12 +200,12 @@ export function confirmPlan(directory, digest) {
     throw new Error(
       `No plan is recorded in ${directory}; run agenticool-spec plan <spec> --state ${directory} first`,
     );
-  if (record.planSha256 !== digest)
+  if (confirmationDigest(record) !== digest)
     throw new Error(
-      `${digest} is not the recorded plan digest ${record.planSha256}; print and confirm the current plan`,
+      `${digest} is not the recorded plan digest ${record.digest}; print and confirm the current plan`,
     );
   writeJson(join(resolve(directory), 'plan.json'), {
     ...record,
-    confirmed: true,
+    confirmed: digest,
   });
 }

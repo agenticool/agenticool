@@ -10,14 +10,14 @@ The `agenticool-spec` command of `@agenticool/spec-parser` loads this package fo
 
 | Command | What it does |
 | --- | --- |
-| `agenticool-spec plan <spec> --state <dir>` | Prints the tree as `plan` always does, records the plan digest (`planSha256`) unconfirmed in `<dir>/plan.json`, and prints `Plan digest: <sha256>` |
-| `agenticool-spec confirm <digest> --state <dir>` | Marks the recorded plan confirmed when `<digest>` is its digest. A person or skill runs it after reviewing the printed tree. |
-| `agenticool-spec file <spec> --state <dir> [--assignee <login>] [--groups <file>]` | Files the plan, or continues a filing whose `state.json` exists |
+| `agenticool-spec plan <spec> --state <dir> [--groups <file>] [--assignee <login>]` | Checks the groups, records the plan, groups, and assignee unconfirmed in `<dir>/plan.json`, and prints the tree, each epic's groups as Plan IDs (or `none`), the totals, the assignee (or `none`), the state directory, and `Plan digest: <sha256>` |
+| `agenticool-spec confirm <digest> --state <dir>` | Marks the recorded plan confirmed when `<digest>` is its digest. A person or skill runs it after reviewing the printed output. |
+| `agenticool-spec file <spec> --state <dir>` | Files the confirmed plan with its confirmed groups and assignee, or continues a filing whose `state.json` exists |
 | `agenticool-spec resume <spec> --state <dir>` | Continues a filing; fails when `state.json` does not exist |
 
-`file` refuses to run unless `<dir>/plan.json` is confirmed for the same specification path and its digest equals the digest of the plan rebuilt from the specification now. Running `plan --state` again resets the confirmation. The state directory must sit outside every git checkout; the skill passes the path state-file.md describes.
+The confirmation digest is the SHA-256 of `planSha256`, the groups (epics in sorted order, as JSON), and the assignee, so the person confirms all three. `file` refuses to run unless `<dir>/plan.json` is confirmed with the digest of its own contents, for the same specification path, and its `planSha256` equals the digest of the plan rebuilt from the specification now. Running `plan --state` again resets the confirmation, and editing `plan.json` after `confirm` breaks it. `state.json` keeps `planSha256` without the groups, as state-file.md defines it, for the resume check. When `state.json` exists, `file` also refuses confirmed groups or an assignee that differ from the ones it recorded. The state directory must sit outside every git checkout; the skill passes the path state-file.md describes.
 
-`--groups <file>` is a JSON object of independence groups keyed by epic, as the skill records them from the triager's `GROUPS` lines: `{ "Phase 0": [["P0.1", "P0.3"], ["P0.2"]] }`. Each group lists Plan IDs of that epic's direct leaf children, and no leaf appears twice. `file` stores each epic's groups in `state.json` and appends its independence record to the epic body as spec-parser's body-shapes.md describes. The groups never add edges: the specification's `Blocked by` fields are the only blocked-by source. A resume reuses the recorded groups and refuses `--groups`.
+`plan --groups <file>` takes a JSON object of independence groups keyed by epic, as the skill records them from the triager's `GROUPS` lines before printing: `{ "Phase 0": [["P0.1", "P0.3"], ["P0.2"]] }`. Each group lists Plan IDs of that epic's direct leaf children, and no leaf appears twice. `file` stores each epic's groups in `state.json` and appends its independence record to the epic body as spec-parser's body-shapes.md describes. The groups never add edges: the specification's `Blocked by` fields are the only blocked-by source. A resume reuses the groups and assignee recorded in `state.json`.
 
 `file` and `resume` run in this order, writing `state.json` atomically after every successful GitHub write:
 
@@ -51,8 +51,9 @@ Every function that calls GitHub takes `run` with the signature of `execFileSync
 | Export | Purpose |
 | --- | --- |
 | `main(argv, { cwd, run, sleep, now, log, error })` | Runs `confirm`, `file`, or `resume` and returns the exit code |
-| `fileSpec({ spec, state, policy, resume?, assignee?, groups?, run, sleep, now, log })` | Files or resumes as described above and returns the final state |
-| `recordPlan(dir, { spec, text, plan, bodies })` | Writes the unconfirmed plan digest to `<dir>/plan.json` and returns it |
+| `fileSpec({ spec, state, policy, resume?, run, sleep, now, log })` | Files or resumes as described above and returns the final state |
+| `recordPlan(dir, { spec, text, plan, bodies, groups?, assignee? })` | Writes the unconfirmed plan, groups, and assignee to `<dir>/plan.json` and returns `{ digest, output }`, the text `plan --state` prints |
+| `confirmationDigest({ planSha256, groups, assignee })` | The digest a person confirms |
 | `confirmPlan(dir, digest)`, `readPlan(dir)` | Confirms the recorded plan; reads `plan.json`, or returns `null` |
 | `planDigest(plan, bodies)`, `sha256(text)` | `planSha256` of rendered bodies; a hex SHA-256 |
 | `stateDirectory(dir)` | Resolves and creates a state directory, refusing one inside a git checkout |

@@ -14,6 +14,8 @@ import {
 } from '@agenticool/tracker';
 import { restClient } from './rest.mjs';
 import {
+  checkGroups,
+  confirmationDigest,
   planDigest,
   readPlan,
   sha256,
@@ -48,8 +50,6 @@ const PLACEHOLDER = /@@issue:([^@]+)@@/g;
  *   state: string,
  *   policy: Record<string, any>,
  *   resume?: boolean,
- *   assignee?: string,
- *   groups?: unknown,
  *   run?: import('@agenticool/github').Run,
  *   sleep?: (ms: number) => Promise<void>,
  *   now?: () => number,
@@ -71,50 +71,6 @@ export const independenceRecord = (groups, agentPrefix) =>
     )
     .join('')}<!-- /${agentPrefix}independence-groups -->`;
 
-/**
- * Validates a groups file: each key is an epic, each group a non-empty list
- * of that epic's direct leaf children, and no leaf appears twice.
- * @param {Plan} plan
- * @param {unknown} groups
- * @returns {Groups}
- */
-export function checkGroups(plan, groups) {
-  if (!groups || typeof groups !== 'object' || Array.isArray(groups))
-    throw new Error(
-      'The groups file must be a JSON object keyed by epic, such as { "Phase 0": [["P0.1"]] }',
-    );
-  for (const [key, list] of Object.entries(groups)) {
-    if (!plan.items.some((item) => item.key === key && item.kind === 'epic'))
-      throw new Error(`Groups name ${key}, which is not an epic of the plan`);
-    if (
-      !Array.isArray(list) ||
-      !list.length ||
-      !list.every(
-        (group) =>
-          Array.isArray(group) &&
-          group.length &&
-          group.every((id) => typeof id === 'string'),
-      )
-    )
-      throw new Error(
-        `Groups for ${key} must be a list of non-empty lists of Plan IDs`,
-      );
-    const seen = new Set();
-    for (const id of list.flat()) {
-      if (
-        !plan.items.some(
-          (item) =>
-            item.key === id && item.kind === 'leaf' && item.parent === key,
-        )
-      )
-        throw new Error(`Groups for ${key} name ${id}, which is not its leaf`);
-      if (seen.has(id)) throw new Error(`Groups for ${key} name ${id} twice`);
-      seen.add(id);
-    }
-  }
-  return /** @type {Groups} */ (groups);
-}
-
 /** @param {any} option */
 const optionName = (option) =>
   typeof option.name === 'string' ? option.name : option.name?.raw;
@@ -130,8 +86,6 @@ export async function fileSpec({
   state: stateDir,
   policy,
   resume = false,
-  assignee,
-  groups,
   run = execFileSync,
   sleep = (ms) => new Promise((done) => setTimeout(done, ms)),
   now = Date.now,
@@ -155,10 +109,6 @@ export async function fileSpec({
       throw new Error(
         `${specPath} changed after filing began, so the confirmed plan is no longer the plan on disk`,
       );
-    if (groups !== undefined)
-      throw new Error(
-        `Groups are already recorded in ${statePath}; resume without --groups`,
-      );
   } else if (resume)
     throw new Error(`Nothing to resume: ${statePath} does not exist`);
 
@@ -172,27 +122,44 @@ export async function fileSpec({
     throw new Error(
       'The plan changed since filing began; print, confirm, and file it again from a new state directory',
     );
-  if (!resume) {
-    const confirmed = readPlan(directory);
-    if (
-      !confirmed?.confirmed ||
-      confirmed.spec !== specPath ||
-      confirmed.planSha256 !== planSha256
-    )
-      throw new Error(
-        `No confirmed plan digest ${planSha256} for ${specPath} in ${directory}; run agenticool-spec plan, then agenticool-spec confirm <digest>`,
-      );
-  }
-  stateDirectory(directory);
-  const epicGroups = recorded
+  /** @type {Groups} */
+  const recordedGroups = recorded
     ? Object.fromEntries(
         recorded.items
           .filter((item) => item.groups)
           .map((item) => [item.key, /** @type {string[][]} */ (item.groups)]),
       )
-    : groups === undefined
-      ? {}
-      : checkGroups(plan, groups);
+    : {};
+  let epicGroups = recordedGroups;
+  let assigned = recorded?.assignee ?? null;
+  if (!resume) {
+    // The groups and assignee a filing uses are the ones the person confirmed.
+    const confirmed = readPlan(directory);
+    if (
+      !confirmed?.confirmed ||
+      confirmed.confirmed !== confirmationDigest(confirmed) ||
+      confirmed.spec !== specPath ||
+      confirmed.planSha256 !== planSha256
+    )
+      throw new Error(
+        `No confirmed plan for ${specPath} in ${directory}; run agenticool-spec plan --state, then agenticool-spec confirm <digest>`,
+      );
+    if (
+      recorded &&
+      confirmationDigest(confirmed) !==
+        confirmationDigest({
+          planSha256,
+          groups: recordedGroups,
+          assignee: assigned,
+        })
+    )
+      throw new Error(
+        `The confirmed groups or assignee differ from the ones ${statePath} recorded when filing began; resume it instead`,
+      );
+    epicGroups = checkGroups(plan, confirmed.groups);
+    assigned = confirmed.assignee;
+  }
+  stateDirectory(directory);
   for (const [key, list] of Object.entries(epicGroups))
     bodies[key] += independenceRecord(list, agentPrefix);
   for (const name of ['bodies', 'sent'])
@@ -217,7 +184,6 @@ export async function fileSpec({
   });
   if (missingLabels.length) throw new Error(missingLabels.join('\n'));
   const login = recorded?.login ?? client.read('user').login;
-  const assigned = recorded ? recorded.assignee : (assignee ?? null);
   if (assigned)
     try {
       client.read(`repos/${repo}/assignees/${assigned}`);

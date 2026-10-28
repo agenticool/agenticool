@@ -1,7 +1,7 @@
 // The `confirm`, `file`, and `resume` commands of `agenticool-spec`, which
 // the spec-parser bin dispatches here.
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { CliHelp, cliError, defineCli, parseCli } from '@agenticool/cli';
 import { GitHubError, redact } from '@agenticool/github';
@@ -11,21 +11,14 @@ import { confirmPlan } from './state.mjs';
 
 const cli = defineCli(
   `Usage: agenticool-spec confirm <digest> --state <dir>
-       agenticool-spec file <spec> --state <dir> [--assignee <login>] [--groups <file>]
-       agenticool-spec resume <spec> --state <dir>`,
+       agenticool-spec file <spec> --state <dir>
+       agenticool-spec resume <spec> --state <dir>
+
+file uses the groups and assignee that plan --state recorded and confirm confirmed.`,
   {
     state: {
       type: 'string',
       description: 'The state directory, outside every git checkout',
-    },
-    assignee: {
-      type: 'string',
-      description: 'file: assign every created issue to this login',
-    },
-    groups: {
-      type: 'string',
-      description:
-        'file: JSON independence groups per epic, such as { "Phase 0": [["P0.1", "P0.3"], ["P0.2"]] }',
     },
   },
 );
@@ -74,8 +67,6 @@ export async function main(
     if (typeof options.state !== 'string')
       throw cliError(cli, '--state <dir> is required');
     const state = resolve(cwd, options.state);
-    if (command !== 'file' && (options.assignee || options.groups))
-      throw cliError(cli, '--assignee and --groups apply only to file');
     if (command === 'confirm') {
       confirmPlan(state, target);
       log(`Confirmed plan ${target}.`);
@@ -93,11 +84,6 @@ export async function main(
       state,
       policy,
       resume: command === 'resume',
-      assignee: /** @type {string | undefined} */ (options.assignee),
-      groups:
-        typeof options.groups === 'string'
-          ? JSON.parse(readFileSync(resolve(cwd, options.groups), 'utf8'))
-          : undefined,
       run,
       sleep,
       now,
