@@ -11,7 +11,7 @@ on:
   workflow_call:
     inputs:
       token_env:
-        description: Secret holding the Projects token, the same name as binding.tokenEnv
+        description: Environment variable the CLI reads the Projects token from, the same name as binding.tokenEnv
         type: string
         required: true
       issue:
@@ -22,6 +22,10 @@ on:
         description: Preview without writes
         type: boolean
         default: false
+    secrets:
+      project_token:
+        description: Projects token, from the secret named by binding.tokenEnv
+        required: false
 
 permissions:
   contents: read
@@ -42,7 +46,7 @@ jobs:
       - name: Check the project token
         id: token
         env:
-          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PROJECT_TOKEN: ${{ secrets.project_token }}
         run: |
           if [ -n "$PROJECT_TOKEN" ]; then
             echo "set=true" >> "$GITHUB_OUTPUT"
@@ -67,7 +71,7 @@ jobs:
       - name: Add the issue to the project
         if: steps.token.outputs.set == 'true'
         env:
-          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PROJECT_TOKEN: ${{ secrets.project_token }}
           CONTENT_TYPE: 'issue'
           CONTENT_NUMBER: ${{ inputs.issue }}
         run: |
@@ -77,7 +81,7 @@ jobs:
       - name: Triage the new issue
         if: steps.token.outputs.set == 'true'
         env:
-          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PROJECT_TOKEN: ${{ secrets.project_token }}
           ISSUE_NUMBER: ${{ inputs.issue }}
         run: |
           export "$TOKEN_ENV=$PROJECT_TOKEN"
@@ -98,7 +102,7 @@ jobs:
       - name: Check the project token
         id: token
         env:
-          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PROJECT_TOKEN: ${{ secrets.project_token }}
         run: |
           if [ -n "$PROJECT_TOKEN" ]; then
             echo "set=true" >> "$GITHUB_OUTPUT"
@@ -123,7 +127,7 @@ jobs:
       - name: Add missing open issues to the project
         if: steps.token.outputs.set == 'true'
         env:
-          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PROJECT_TOKEN: ${{ secrets.project_token }}
           SWEEP: 'true'
         run: |
           export "$TOKEN_ENV=$PROJECT_TOKEN"

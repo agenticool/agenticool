@@ -47,4 +47,5 @@ jobs:
       token_env: 'AGENTICOOL_PROJECT_TOKEN'
       issue: ${{ github.event.issue.number || 0 }}
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-    secrets: inherit
+    secrets:
+      project_token: ${{ secrets.AGENTICOOL_PROJECT_TOKEN }}

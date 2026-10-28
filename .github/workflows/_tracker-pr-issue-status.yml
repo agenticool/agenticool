@@ -10,7 +10,7 @@ on:
   workflow_call:
     inputs:
       token_env:
-        description: Secret holding the Projects token, the same name as binding.tokenEnv
+        description: Environment variable the CLI reads the Projects token from, the same name as binding.tokenEnv
         type: string
         required: true
       pull_request:
@@ -25,6 +25,10 @@ on:
         description: Preview without writes
         type: boolean
         default: false
+    secrets:
+      project_token:
+        description: Projects token, from the secret named by binding.tokenEnv
+        required: false
 
 permissions:
   contents: read
@@ -42,7 +46,7 @@ jobs:
         id: token
         env:
           TOKEN_ENV: ${{ inputs.token_env }}
-          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PROJECT_TOKEN: ${{ secrets.project_token }}
         run: |
           if [ -n "$PROJECT_TOKEN" ]; then
             echo "set=true" >> "$GITHUB_OUTPUT"
@@ -68,7 +72,7 @@ jobs:
         if: steps.token.outputs.set == 'true'
         env:
           TOKEN_ENV: ${{ inputs.token_env }}
-          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PROJECT_TOKEN: ${{ secrets.project_token }}
           PR_NUMBER: ${{ inputs.pull_request }}
           PR_ACTION: ${{ inputs.action }}
           DRY_RUN: ${{ inputs.dry_run }}

@@ -30,7 +30,8 @@ jobs:
     with:
       token_env: '{{tokenEnv}}'
       issue: ${{ github.event.issue.number }}
-    secrets: inherit
+    secrets:
+      project_token: ${{ secrets.{{tokenEnv}} }}
 
   add-missing-issues:
     name: Add missing open issues to {{project.name}}
@@ -39,4 +40,5 @@ jobs:
     with:
       token_env: '{{tokenEnv}}'
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-    secrets: inherit
+    secrets:
+      project_token: ${{ secrets.{{tokenEnv}} }}

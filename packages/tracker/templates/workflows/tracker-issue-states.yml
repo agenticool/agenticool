@@ -47,4 +47,5 @@ jobs:
       token_env: '{{tokenEnv}}'
       issue: ${{ github.event.issue.number || 0 }}
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-    secrets: inherit
+    secrets:
+      project_token: ${{ secrets.{{tokenEnv}} }}
