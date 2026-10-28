@@ -76,6 +76,65 @@ test('substitute resolves every placeholder and feature section', () => {
   );
 });
 
+test('the security reviewer names the account checks the binding lists', () => {
+  const source = readFileSync(
+    join(SOURCES, 'roles/security-reviewer.md'),
+    'utf8',
+  );
+  /** @param {Record<string, any>} extra */
+  const rendered = (extra) =>
+    renderRole(
+      { ...other, binding: { ...other.binding, ...extra } },
+      'security-reviewer',
+      source,
+      'claude',
+    );
+  const infrastructure = { features: { infrastructure: true } };
+  assert.match(
+    rendered({
+      ...infrastructure,
+      infrastructure: {
+        accountChecks: ['scripts/app.mjs', 'packages/config'],
+      },
+    }),
+    /OpenTofu, or CDK are in scope.*environment isolation, and the account checks in `scripts\/app\.mjs` and `packages\/config`\. /,
+  );
+  for (const extra of [
+    { ...infrastructure, infrastructure: { accountChecks: [] } },
+    infrastructure,
+  ])
+    assert.match(
+      rendered(extra),
+      /OpenTofu, or CDK are in scope.*environment isolation\. /,
+    );
+  const without = rendered({
+    infrastructure: { accountChecks: ['scripts/app.mjs'] },
+  });
+  assert.match(without, /environment isolation\. /);
+  assert.doesNotMatch(without, /OpenTofu|account checks/);
+});
+
+test('placeholder sections keep their content only for a non-empty value', () => {
+  const text =
+    '{{#infrastructure}}infra{{#infrastructure.accountChecks}} in {{infrastructure.accountChecks}}{{/infrastructure.accountChecks}}{{/infrastructure}}.';
+  /** @param {string[]} accountChecks */
+  const bound = (accountChecks) => ({
+    ...other,
+    binding: {
+      ...other.binding,
+      infrastructure: { accountChecks },
+      features: { infrastructure: true },
+    },
+  });
+  assert.equal(substitute(text, bound(['a'])), 'infra in `a`.');
+  assert.equal(
+    substitute(text, bound(['a', 'b', 'c'])),
+    'infra in `a`, `b`, and `c`.',
+  );
+  assert.equal(substitute(text, bound([])), 'infra.');
+  assert.equal(substitute(text, other), '.');
+});
+
 test('generated output carries no unresolved placeholder and follows the binding', () => {
   for (const [path, content] of render(FIXTURE)) {
     // The maintainer skill documents the placeholders literally.

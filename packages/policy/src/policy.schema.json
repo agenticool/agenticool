@@ -57,6 +57,17 @@
             }
           }
         },
+        "infrastructure": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "accountChecks": {
+              "description": "Files that hold the cloud account checks the security reviewer inspects.",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
         "features": {
           "type": "object",
           "additionalProperties": false,
