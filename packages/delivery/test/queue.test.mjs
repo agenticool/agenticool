@@ -835,13 +835,24 @@ test('per-epic and root records combine, and a record outside the tree or across
     bodies: { ...planBodies, 20: record('- g1: #1', '- g2: #2') },
   });
   assert.deepEqual(rows[0].groups, ['10/g1', '20/g1']);
-  assert.deepEqual(candidates(rows), {
+  // The root record keeps 1 and 2 in one group, so they never run together.
+  assert.deepEqual(candidates(rows), { 1: [3], 2: [3], 3: [1, 2], 4: [] });
+  assert.equal(rows[0].parallelWith[0].group, '10/g2');
+  // Records that agree keep the pair apart.
+  const agreed = queue({
+    ...plan,
+    bodies: {
+      ...planBodies,
+      10: record('- g1: #1', '- g2: #2 #3'),
+      20: record('- g1: #1', '- g2: #2'),
+    },
+  });
+  assert.deepEqual(candidates(agreed.rows), {
     1: [2, 3],
-    2: [1, 3],
-    3: [1, 2],
+    2: [1],
+    3: [1],
     4: [],
   });
-  assert.equal(rows[0].parallelWith[0].group, '20/g2');
   // A blocker outside the tree names its own children, which are not rows.
   const outside = queue({
     ...plan,

@@ -425,16 +425,17 @@ function parallelMetadata(nodes, rows, merged, namespace) {
     );
   /**
    * The other leaf's group in a record that puts the two leaves in different
-   * groups, when one does.
+   * groups, unless another record puts them in the same group, because at
+   * most one leaf per group runs at a time.
    * @param {string[]} mine
    * @param {string[]} theirs
    */
   const apart = (mine, theirs) =>
-    theirs.find((group) =>
-      mine.some(
-        (own) => own.split('/')[0] === group.split('/')[0] && own !== group,
-      ),
-    );
+    theirs.some((group) => mine.includes(group))
+      ? undefined
+      : theirs.find((group) =>
+          mine.some((own) => own.split('/')[0] === group.split('/')[0]),
+        );
   for (const row of rows) {
     row.parallelWith = [];
     if (

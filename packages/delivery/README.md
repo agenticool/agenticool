@@ -36,7 +36,7 @@ Comments that open with `Claimed`, `Claiming`, `Re-claimed`, or `Re-claiming` ar
 
 A container's record may name any leaf in its subtree, so a spec plan's root container can carry one plan-wide record whose groups mix leaves of different phase epics, while each epic or container may keep its own record. Every record is validated on its own and ignored, adding no groups, when it is malformed, names an issue outside the container's subtree or one that is not a leaf, lists an issue twice, or puts in different groups two leaves linked by a chain of blocked-by edges or sharing a blocker that is still open. `groups` lists the leaf's group in each valid record that names it, as `<container>/gN`.
 
-`parallelWith` lists another leaf when both are `ready`, sized `M`, and have complete implementation notes (backticked `Files:` and a `Contracts:` or `Provides:` line), some valid record puts them in different groups, their `Files` do not overlap (a glob counts from its literal prefix), and they share no contract. Each entry carries the other leaf's issue, its group in that record, and its files and contracts.
+`parallelWith` lists another leaf when both are `ready`, sized `M`, and have complete implementation notes (backticked `Files:` and a `Contracts:` or `Provides:` line), some valid record puts them in different groups and none puts them in the same group, their `Files` do not overlap (a glob counts from its literal prefix), and they share no contract. Each entry carries the other leaf's issue, its group in that record, and its files and contracts.
 
 ### `branch-name <issue> [--layer <n>] [--actor <login>]`
 
