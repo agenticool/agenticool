@@ -39,6 +39,7 @@ The schema rejects unknown keys and wrong types everywhere, but requires no sect
 | `binding.project` | `{ owner, ownerType, number, name }` | Delivery project; `ownerType` is `user` (default) or `organization` |
 | `binding.tokenEnv` | `UPPER_CASE` name | Environment variable that holds the Projects token |
 | `binding.docs` | `{ triage, workflow, guides[] }` | Tracker documents the agent sources name |
+| `binding.infrastructure.accountChecks` | string[], optional | Files holding the cloud account checks the security reviewer inspects |
 | `binding.features.infrastructure` | boolean | Infrastructure sections in the agent sources |
 | `binding.features.releasePlease` | boolean, default `false` | Release pull requests get package labels |
 | `binding.features.browserMcp` | boolean, default `false` | Sync writes project MCP configuration for browser tools |

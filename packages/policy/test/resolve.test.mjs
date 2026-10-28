@@ -42,6 +42,7 @@ test('the binding resolves every placeholder', () => {
     'docs.triage': 'TRIAGE.md',
     'docs.workflow': 'AGENTS.md',
     'docs.guides': '`AGENTS.md`',
+    'infrastructure.accountChecks': '',
   });
   assert.equal(
     placeholders({
@@ -52,6 +53,26 @@ test('the binding resolves every placeholder', () => {
       },
     })['docs.guides'],
     '`A.md`, `B.md`, or `C.md`',
+  );
+  assert.equal(
+    placeholders({
+      ...other,
+      binding: {
+        ...other.binding,
+        docs: { ...other.binding.docs, guides: ['A.md', 'B.md'] },
+      },
+    })['docs.guides'],
+    '`A.md` or `B.md`',
+  );
+  assert.equal(
+    placeholders({
+      ...other,
+      binding: {
+        ...other.binding,
+        infrastructure: { accountChecks: ['a.mjs', 'b', 'c'] },
+      },
+    })['infrastructure.accountChecks'],
+    '`a.mjs`, `b`, and `c`',
   );
   assert.throws(
     () => binding({ ...policy, binding: undefined }),

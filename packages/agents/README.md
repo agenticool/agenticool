@@ -83,8 +83,8 @@ The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `secu
 
 ### Source syntax
 
-- `{{prefix}}`, `{{label}}`, `{{repository}}`, `{{project.owner}}`, `{{project.number}}`, `{{project.name}}`, `{{project.url}}`, `{{project.restPath}}` (the Projects v2 REST path, `users/` or `orgs/` by `ownerType`), `{{docs.triage}}`, `{{docs.workflow}}`, and `{{docs.guides}}` resolve from `binding`. An unknown placeholder fails generation.
-- `{{#feature}}...{{/feature}}` keeps its text only when `binding.features.<feature>` is true. An unknown feature or an unbalanced section fails generation.
+- `{{prefix}}`, `{{label}}`, `{{repository}}`, `{{project.owner}}`, `{{project.number}}`, `{{project.name}}`, `{{project.url}}`, `{{project.restPath}}` (the Projects v2 REST path, `users/` or `orgs/` by `ownerType`), `{{docs.triage}}`, `{{docs.workflow}}`, `{{docs.guides}}`, and `{{infrastructure.accountChecks}}` (a list joined with "and", empty when the list is empty or absent) resolve from `binding`. An unknown placeholder fails generation.
+- `{{#feature}}...{{/feature}}` keeps its text only when `binding.features.<feature>` is true, and `{{#placeholder}}...{{/placeholder}}`, such as `{{#infrastructure.accountChecks}}`, only when that placeholder is not empty. Sections may nest. An unknown section or an unbalanced section fails generation.
 - `{{> name}}` inserts `sources/includes/<name>.md` without its trailing newline. Names are lowercase letters and dashes, includes cannot nest, and an unknown or malformed include fails generation.
 - `\{{` stays a literal `{{`, for text that documents the syntax itself.
 - `<!-- claude-only -->` ... `<!-- /claude-only -->` and `<!-- codex-only -->` ... `<!-- /codex-only -->` blocks render for one tool only; everything else is shared.

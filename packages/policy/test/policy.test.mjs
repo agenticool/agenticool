@@ -32,6 +32,7 @@ const withNewFields = (policy, token) => ({
     ...policy.binding,
     project: { ...policy.binding.project, ownerType: 'user' },
     tokenEnv: token,
+    infrastructure: { accountChecks: ['scripts/app.mjs'] },
     features: {
       ...policy.binding.features,
       releasePlease: false,
@@ -238,6 +239,18 @@ test('the schema rejects values of the wrong shape', () => {
     [
       { binding: { docs: { triage: 'T.md', workflow: 'W.md', guides: [1] } } },
       /binding.docs.guides\[0\] must be string/,
+    ],
+    [
+      { binding: { infrastructure: { accountChecks: 'scripts/app.mjs' } } },
+      /binding.infrastructure.accountChecks must be array/,
+    ],
+    [
+      { binding: { infrastructure: { accountChecks: [''] } } },
+      /binding.infrastructure.accountChecks\[0\] must not be empty/,
+    ],
+    [
+      { binding: { infrastructure: { paths: [] } } },
+      /binding.infrastructure has unknown key paths/,
     ],
     [{ roles: { implementer: 3 } }, /roles.implementer must be string/],
     [{ supported: { claude: { models: {} } } }, /supported is missing codex/],

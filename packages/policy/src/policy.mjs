@@ -189,15 +189,18 @@ export function binding(policy) {
   return value;
 }
 
-/** @param {string[]} items */
-function listPhrase(items) {
+/**
+ * @param {string[]} items
+ * @param {string} [conjunction]
+ */
+function listPhrase(items, conjunction = 'or') {
   const quoted = items.map((item) => `\`${item}\``);
-  if (quoted.length === 1) return quoted[0];
-  return `${quoted.slice(0, -1).join(', ')}, or ${quoted.at(-1)}`;
+  if (quoted.length <= 2) return quoted.join(` ${conjunction} `);
+  return `${quoted.slice(0, -1).join(', ')}, ${conjunction} ${quoted.at(-1)}`;
 }
 
 // Placeholders a source may use. Anything else is an error, so a typo never
-// reaches a generated prompt.
+// reaches a generated prompt. A list placeholder is empty when its list is.
 /**
  * @param {Policy} policy
  * @returns {Record<string, string>}
@@ -218,5 +221,9 @@ export function placeholders(policy) {
     'docs.triage': value.docs.triage,
     'docs.workflow': value.docs.workflow,
     'docs.guides': listPhrase(value.docs.guides),
+    'infrastructure.accountChecks': listPhrase(
+      value.infrastructure?.accountChecks ?? [],
+      'and',
+    ),
   };
 }

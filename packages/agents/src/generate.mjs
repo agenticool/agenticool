@@ -55,8 +55,10 @@ function load(base) {
 }
 
 // `{{#feature}}...{{/feature}}` keeps its content only when the binding
-// enables that feature; `{{name}}` becomes the bound value; `\{{` is a
-// literal `{{` for text that documents the placeholders themselves.
+// enables that feature, and `{{#name}}...{{/name}}` on a placeholder only when
+// its value is not empty, as for an empty list; sections may nest.
+// `{{name}}` becomes the bound value; `\{{` is a literal `{{` for text that
+// documents the placeholders themselves.
 /**
  * @param {string} text
  * @param {Policy} policy
@@ -65,16 +67,21 @@ export function substitute(text, policy) {
   const values = placeholders(policy);
   const features = binding(policy).features;
   const literal = '\u0000';
-  const sections = text
-    .replaceAll('\\{{', literal)
-    .replace(
-      /\{\{#([a-zA-Z]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,
-      (_, name, content) => {
-        if (!(name in features))
+  /**
+   * @param {string} content
+   * @returns {string}
+   */
+  const resolveSections = (content) =>
+    content.replace(
+      /\{\{#([a-zA-Z.]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,
+      (_, name, inner) => {
+        if (!(name in features) && !(name in values))
           throw new Error(`Unknown feature section: ${name}`);
-        return features[name] ? content : '';
+        const kept = name in features ? features[name] : values[name] !== '';
+        return kept ? resolveSections(inner) : '';
       },
     );
+  const sections = resolveSections(text.replaceAll('\\{{', literal));
   if (/\{\{[#/]/.test(sections))
     throw new Error('Unbalanced feature section in source');
   return sections
