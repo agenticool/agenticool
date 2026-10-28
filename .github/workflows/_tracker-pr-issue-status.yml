@@ -1,0 +1,59 @@
+# Moves the open issues a pull request closes to In review. Callers start from
+# templates/workflows/tracker-pr-issue-status.yml in @agenticool/tracker, on
+# pull_request_target. The steps run the agenticool-tracker that the caller's
+# default-branch package-lock.json installs, never pull request code, so the
+# caller's default branch must list @agenticool/tracker in package.json.
+
+name: 'Tracker: move closing issues to In review (reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      token_env:
+        description: Secret holding the Projects token, the same name as binding.tokenEnv
+        type: string
+        required: true
+      pull_request:
+        description: Pull request number
+        type: number
+        required: true
+      action:
+        description: The pull_request_target activity type
+        type: string
+        required: true
+      dry_run:
+        description: Preview without writes
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  mark-issues-in-review:
+    name: Move closing issues to In review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Execute trusted default-branch code for fork PRs too.
+      - name: Check out the default branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .tool-versions
+      - name: Install dependencies
+        run: npm ci
+      - name: Update project status of closing issues
+        env:
+          TOKEN_ENV: ${{ inputs.token_env }}
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          PR_NUMBER: ${{ inputs.pull_request }}
+          PR_ACTION: ${{ inputs.action }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          export "$TOKEN_ENV=$PROJECT_TOKEN"
+          npx --no agenticool-tracker pr-status

@@ -1,7 +1,15 @@
 {
   "binding": {
+    "namespace": "widgets",
+    "label": "Widgets",
     "repository": "acme/widgets",
     "project": { "owner": "acme", "number": 7, "name": "Widgets delivery" },
-    "tokenEnv": "WIDGETS_PROJECT_TOKEN"
+    "tokenEnv": "WIDGETS_PROJECT_TOKEN",
+    "docs": {
+      "triage": "ISSUE_TRIAGE.md",
+      "workflow": "WORKFLOW.md",
+      "guides": ["CONTRIBUTING.md"]
+    },
+    "features": { "infrastructure": false }
   }
 }

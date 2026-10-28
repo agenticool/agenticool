@@ -1,0 +1,79 @@
+# Reconciles one issue and its hierarchy, or sweeps the project when `issue` is
+# 0: missing open issues join the project (sweep only), then triage, then
+# containers. Callers start from templates/workflows/tracker-issue-states.yml
+# in @agenticool/tracker. The steps run the agenticool-tracker that the
+# caller's package-lock.json installs, so the caller's default branch must
+# list @agenticool/tracker in package.json.
+
+name: 'Tracker: reconcile issue states (reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      token_env:
+        description: Secret holding the Projects token, the same name as binding.tokenEnv
+        type: string
+        required: true
+      issue:
+        description: Issue to reconcile with its hierarchy; 0 sweeps the project
+        type: number
+        default: 0
+      dry_run:
+        description: Preview without writes
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-issues:
+    name: Reconcile issue project states
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      ISSUE_NUMBER: ${{ inputs.issue }}
+      TOKEN_ENV: ${{ inputs.token_env }}
+    steps:
+      # Execute trusted default-branch code.
+      - name: Check out the default branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .tool-versions
+      - name: Install dependencies
+        id: install
+        run: npm ci
+      # Each sweep runs even when an earlier one failed, and any failure fails
+      # the job at the end.
+      - name: Add missing open issues to the project
+        if: ${{ inputs.issue == 0 && !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+          SWEEP: 'true'
+        run: |
+          export "$TOKEN_ENV=$PROJECT_TOKEN"
+          npx --no agenticool-tracker membership
+      - name: Triage issues
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+        run: |
+          export "$TOKEN_ENV=$PROJECT_TOKEN"
+          scope=()
+          if [ "$ISSUE_NUMBER" != 0 ]; then scope=(--issue "$ISSUE_NUMBER"); fi
+          npx --no agenticool-tracker triage "${scope[@]}"
+      - name: Close finished containers
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          PROJECT_TOKEN: ${{ secrets[inputs.token_env] }}
+        run: |
+          export "$TOKEN_ENV=$PROJECT_TOKEN"
+          scope=()
+          if [ "$ISSUE_NUMBER" != 0 ]; then scope=(--issue "$ISSUE_NUMBER"); fi
+          npx --no agenticool-tracker containers "${scope[@]}"

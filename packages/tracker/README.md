@@ -2,15 +2,54 @@
 
 Keep a GitHub Project in step with issues and pull requests: triage, Done and Inbox, containers, membership, closing-issue status, and issue metadata on pull requests.
 
-The package exports the tracker core, the triage reconcilers, container closure, project membership, closing-issue status, and pull request metadata. Every GitHub call goes through `@agenticool/github`, and every repository and project fact comes from the policy that `@agenticool/policy` loads.
+The package exports the tracker core, the triage reconcilers, container closure, project membership, closing-issue status, and pull request metadata, plus the `agenticool-tracker` command, the repository templates, and the reusable tracker workflows. Every GitHub call goes through `@agenticool/github`, and every repository and project fact comes from the policy that `@agenticool/policy` loads.
 
 ## Bins
 
-None.
+`agenticool-tracker <command> [--dry-run | --apply] …` reads `.agents/policy.json` in the working directory and prints `agenticool-tracker --help` for usage.
+
+| Command | Options and environment | What it does |
+| --- | --- | --- |
+| `triage` | `--issue <n>` | Removes conflicting epic labels, moves eligible issues to Ready, and reconciles Done, for one issue or the whole project |
+| `containers` | `--issue <n>` | Closes finished containers and reopens the ones it closed, for one issue's hierarchy or every issue |
+| `membership` | `--issue <n>` or `CONTENT_TYPE` and `CONTENT_NUMBER`; `--sweep` or `SWEEP=true` | Adds one issue to the project, or every open issue missing from it |
+| `pr-status` | `PR_NUMBER`, `PR_ACTION` | Moves the issues a pull request closes to In review |
+| `pr-metadata` | `PR_NUMBER` | Copies linked issue labels, assignees, and milestone to a pull request |
+
+- Without `--apply`, every command is a dry run unless `DRY_RUN=false`. `--dry-run` always wins. `DRY_RUN` and `SWEEP` must be `true` or `false`.
+- `triage`, `containers`, and `membership` run between two GraphQL budget readings (`runTracker`): a sweep skips below the budget floor, and a single-issue run that is rate-limited or whose issue is gone warns and succeeds.
+- `pr-status` reads GitHub through `metadataGraphql`, so a closing reference to a missing issue reads as `null`.
+- With `GITHUB_ACTIONS=true`, every command requires the token variable named by `binding.tokenEnv` (`GITHUB_TOKEN` cannot reach Projects) and copies it into `GH_TOKEN`. `membership`, `pr-status`, and `pr-metadata` also require `GITHUB_REPOSITORY` to be `binding.repository`, and `pr-status` requires `PR_ACTION` to be `opened`, `edited`, `reopened`, or `ready_for_review`.
+- The exit code is 1 on any failure and 0 otherwise, including for `--help`.
+
+## Templates
+
+`renderTemplate(name, policy)` reads `templates/<name>` and replaces each `{{placeholder}}` with a policy value; an unknown placeholder throws. GitHub Actions `${{ … }}` expressions stay as they are. The placeholders are those of `placeholders(policy)` from `@agenticool/policy` (`repository`, `project.name`, `project.url`, `docs.triage`, `docs.workflow`, and the rest), plus `tokenEnv` and `version`, this package's version.
+
+| Template | Rendered copy in the consumer |
+| --- | --- |
+| `labels.json` | `.github/labels.json`, the base label catalog; `labels.extra` adds repository labels |
+| `ISSUE_TEMPLATE/bug.yml`, `config.yml`, `container.yml`, `epic.yml`, `task.yml` | `.github/ISSUE_TEMPLATE/` |
+| `pull_request_template.md` | `.github/pull_request_template.md` |
+| `ISSUE_TRIAGE.md` | The path in `binding.docs.triage` |
+| `workflows/tracker-issue-states.yml`, `tracker-project-membership.yml`, `tracker-pr-issue-status.yml`, `tracker-pr-metadata.yml` | `.github/workflows/`, the caller workflows |
+
+## Reusable workflows
+
+Each caller workflow template keeps its tracker workflow's triggers, label and body-edit filters, concurrency, and fork guard (`github.repository == '{{repository}}'`), and calls one reusable workflow from this repository with `secrets: inherit`, pinned at `tracker-v{{version}}`:
+
+| Reusable workflow | Inputs | Runs |
+| --- | --- | --- |
+| `.github/workflows/_tracker-issue-states.yml` | `issue` (0 sweeps), `dry_run` | `membership` (sweep only), `triage`, `containers` |
+| `.github/workflows/_tracker-project-membership.yml` | `issue` (0 sweeps), `dry_run` | `membership`, then `triage --issue` for one issue |
+| `.github/workflows/_tracker-pr-issue-status.yml` | `pull_request`, `action`, `dry_run` | `pr-status` |
+| `.github/workflows/_tracker-pr-metadata.yml` | `pull_request`, `dry_run` | `pr-metadata` |
+
+Every reusable workflow also takes `token_env`, the name of the secret that holds the Projects token, which the templates fill from `binding.tokenEnv`. Each job checks out the caller's default branch, sets up Node.js from its `.tool-versions`, runs `npm ci`, and runs the caller's installed `npx --no agenticool-tracker`. A caller therefore needs `@agenticool/tracker` in its `package.json` and `package-lock.json`, a `.tool-versions` with a `nodejs` line, and `.agents/policy.json` on its default branch.
 
 ## Config keys
 
-Load the policy with `loadPolicy(base, { sections: ['binding.repository', 'binding.project', 'binding.tokenEnv'] })` and pass it as `policy`.
+Load the policy with `loadPolicy(base, { sections: SECTIONS })` (`binding.repository`, `binding.project`, `binding.tokenEnv`) and pass it as `policy`. `renderTemplate` also needs the full binding that `binding(policy)` checks.
 
 | Key | Used for |
 | --- | --- |
@@ -18,7 +57,8 @@ Load the policy with `loadPolicy(base, { sections: ['binding.repository', 'bindi
 | `binding.project.owner`, `binding.project.number` | The Projects v2 board to read and write |
 | `binding.project.ownerType` | `user` (default) reads the board through GraphQL `user(login:)`, `organization` through `organization(login:)` |
 | `binding.project.name` | The project name in error messages |
-| `binding.tokenEnv` | The token variable that failure messages redact |
+| `binding.tokenEnv` | The token variable that failure messages redact, that the command requires in GitHub Actions, and the secret the caller workflows pass |
+| `binding.docs.triage`, `binding.docs.workflow` | Document paths the issue forms, PR template, and `ISSUE_TRIAGE.md` link to |
 | `binding.features.releasePlease` | `true` gives the release pull request package labels instead of issue labels (default `false`) |
 
 ## Exports
@@ -88,6 +128,15 @@ Each reconciler takes `{ api, policy, dryRun = true, issueNumber?, log?, warn? }
 | `metadataGraphql(query, variables, run?)` | GraphQL client that reads a reference to a missing issue or pull request as `null` |
 | `linkedIssues(body, repository)`, `referenceText(body)` | Issue references of the repository in a description, and the description without comments, code, and parent lines |
 | `readMetadata(api, id)` | Label and assignee IDs of an issue or pull request |
+
+### Command and templates
+
+| Export | Purpose |
+| --- | --- |
+| `main(argv, { env?, cwd?, run?, log?, warn?, error? })` | The bin; returns the exit code. `run` replaces the `gh` subprocess in tests |
+| `configuration(env, args, policy)` | The `triage` and `containers` options: `{ dryRun, issueNumber? }` |
+| `SECTIONS`, `USAGE` | The policy sections the command loads, and its help text |
+| `renderTemplate(name, policy)`, `TEMPLATES` | A rendered template, and the URL of the `templates/` directory |
 
 ### Release Please
 

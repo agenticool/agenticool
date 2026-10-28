@@ -9,7 +9,7 @@ test("this repository's workflows pass every rule", () => {
       fileURLToPath(new URL('../../../.github/workflows', import.meta.url)),
       {
         config: {
-          areas: { ci: 'CI', release: 'Release' },
+          areas: { ci: 'CI', release: 'Release', tracker: 'Tracker' },
           requiredChecks: [
             {
               file: 'ci-pr-title.yml',

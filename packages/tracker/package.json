@@ -7,10 +7,16 @@
   "exports": {
     ".": "./src/index.mjs"
   },
+  "bin": {
+    "agenticool-tracker": "./bin/agenticool-tracker.mjs"
+  },
   "files": [
-    "src"
+    "bin",
+    "src",
+    "templates"
   ],
   "dependencies": {
+    "@agenticool/cli": "^0.0.0",
     "@agenticool/github": "^0.0.0",
     "@agenticool/policy": "^0.0.0"
   },
