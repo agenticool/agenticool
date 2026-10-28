@@ -33,6 +33,7 @@ import {
  */
 
 const GROUPS = {
+  Plan: [['P1.1a', 'P1.3'], ['P2.1']],
   'Phase 0': [['P0.1', 'P0.2', 'P0.3']],
   'Phase 2': [['P2.1'], ['P2.2']],
 };
@@ -260,6 +261,11 @@ test('file runs every stage in order and records state after each write', async 
     fake.issue(/** @type {number} */ (number('Phase 0'))).body,
     /### Independence groups\n\n<!-- acme-independence-groups -->\n- g1: #46 #47 #48\n<!-- \/acme-independence-groups -->$/,
   );
+  // The plan-wide record on the root names leaves of different epics.
+  assert.match(
+    fake.issue(/** @type {number} */ (number('Plan'))).body,
+    /### Independence groups\n\n<!-- acme-independence-groups -->\n- g1: #49 #52\n- g2: #53\n<!-- \/acme-independence-groups -->$/,
+  );
 
   const saved = read();
   assert.deepEqual(saved, filed);
@@ -270,6 +276,10 @@ test('file runs every stage in order and records state after each write', async 
   assert.deepEqual(
     saved.items.find((i) => i.key === 'Phase 0')?.groups,
     GROUPS['Phase 0'],
+  );
+  assert.deepEqual(
+    saved.items.find((i) => i.key === 'Plan')?.groups,
+    GROUPS.Plan,
   );
   assert.equal(saved.items.find((i) => i.key === 'Phase 1')?.groups, null);
   assert.ok(existsSync(join(state, 'bodies', 'Stack P1.1.md')));
@@ -484,13 +494,16 @@ test('a specification that fails pre-flight files nothing', async () => {
   );
 });
 
-test('checkGroups accepts only lists of each epic’s own leaves', () => {
+test('checkGroups accepts each epic’s own leaves and any leaf of the plan under Plan', () => {
   const plan = parse(readFileSync(SPEC, 'utf8'));
   assert.deepEqual(checkGroups(plan, GROUPS), GROUPS);
   for (const [groups, message] of /** @type {[unknown, RegExp][]} */ ([
     [null, /must be a JSON object keyed by epic/],
     [[], /must be a JSON object keyed by epic/],
-    [{ 'Phase 9': [['P0.1']] }, /Phase 9, which is not an epic/],
+    [{ 'Phase 9': [['P0.1']] }, /Phase 9, which is neither Plan nor an epic/],
+    [{ 'Stack P1.1': [['P1.1a']] }, /Stack P1\.1, which is neither Plan/],
+    [{ Plan: [['Phase 0']] }, /Phase 0, which is not its leaf/],
+    [{ Plan: [['P0.1'], ['P2.1', 'P0.1']] }, /Plan name P0\.1 twice/],
     [{ 'Phase 0': [] }, /must be a list of non-empty lists/],
     [{ 'Phase 0': [[]] }, /must be a list of non-empty lists/],
     [{ 'Phase 0': [[1]] }, /must be a list of non-empty lists/],

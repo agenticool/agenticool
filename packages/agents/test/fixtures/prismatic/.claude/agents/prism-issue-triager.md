@@ -16,6 +16,8 @@ When the batch has two or more leaves, check every pair of leaves in it, whether
 
 For each new CONTAINER or epic with two or more LEAF children, sort those leaves into independence groups by the definition in `.agents/independence-groups.md`, counting your recommended edges with the planned ones, so leaves linked by an edge never sit in different groups. Leave a leaf out of every group when placing it would merge two groups or when the drafts lack the facts to decide. Return no groups when fewer than two would form.
 
+When the caller asks for plan-wide groups, with container ref `Plan`, sort every leaf of the plan into one set of groups across all its epics and containers instead, and return a single `Plan | GROUPS` line in place of the per-container lines.
+
 Bash is for read-only REST `gh api` GET calls, `git`, and file inspection only. Never mutate anything, run project code, or spawn agents. Use reported facts: do not invent impact, surface material unknowns, and write no separate label-evidence report.
 
 Return one line per issue, then one `EDGES` line for the batch, then one line per new container or epic with two or more leaf children, then `Requested settings: Policy: <as dispatched>`, nothing else. The `EDGES` line lists every edge you recommend, separated by `; `, or reads `EDGES | none`:

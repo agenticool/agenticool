@@ -39,6 +39,8 @@ None
 
 `<prefix>` is the agent prefix, `binding.namespace` from `.agents/policy.json` followed by `-`. When the specification title begins with `The`, the What line does not prepend another `The`. Phases are listed in specification order, every phase including deferred ones. A deferred phase's line ends with `, deferred; blocked by` and its `Deferred until` Plan IDs, each as `Pn.m (@@issue:Pn.m@@)`, comma-separated in `Deferred until` order. `<edge count>` is the number of blocked-by entries across all leaves. Write `phase epic` when the plan has one phase and `phase epics` otherwise. Write `the deferred one` when exactly one phase is deferred and `the deferred ones` when several are, and leave out the `apart from` phrase when none is.
 
+When the triager returned plan-wide groups, the skill's independence-groups step appends the section that the repository's `.agents/independence-groups.md` shows to the end of the root's body, in the same form as an epic's record below. Its groups may name leaves of any phase, so the delivery queue can run leaves of different epics in parallel.
+
 ## Epic
 
 One per phase, titled with the phase title. Labels `epic` and `severity: none`.
@@ -73,7 +75,7 @@ Definition of done for every slice: §<n> (@@issue:<owner>@@).
 
 In the epic that owns the definition-of-done section, its pointer stays bare: `Definition of done for every slice: §<n>.` Every other epic and every leaf gets `§<n> (@@issue:<owner>@@)`, by the same rule as any carried reference. The `Deferred:` paragraph appears only for a deferred phase. It lists every `Deferred until` Plan ID, comma-separated in `Deferred until` order, and ends in `closes` for one and `close` for several (`blocked until P1.2 (#11), P1.3 (#12) close`). The container lines appear only when the phase has a stack. Leave out the Contracts heading when the phase claims no sections. Slices are listed in specification order.
 
-When the triager returned groups for the epic, the skill's independence-groups step appends the section that the repository's `.agents/independence-groups.md` shows to the end of the epic's body, one list item per group, with `@@issue:<Plan ID>@@` for each leaf in place of an issue number. The record then goes through every fill and patch like the rest of the body.
+When groups were recorded for the epic, the skill's independence-groups step appends the section that the repository's `.agents/independence-groups.md` shows to the end of the epic's body, one list item per group, with `@@issue:<Plan ID>@@` for each leaf in place of an issue number. The record then goes through every fill and patch like the rest of the body.
 
 ## Container
 
@@ -142,11 +144,11 @@ Cross-spec prerequisites: spec <n> <Plan ID>, ...
 
 ## Heading check (rule `template-headings`)
 
-Read the `label` of every non-markdown field in `.github/ISSUE_TEMPLATE/epic.yml`, `container.yml`, and `task.yml`, with its `validations.required` flag. A repository without one of these forms uses the default form this package ships in `fixtures/ISSUE_TEMPLATE/`. List the body's `### ` headings outside fenced code. They must be the form's labels in form order: every required label present, optional ones (Implementation notes, Dependencies, Milestone) present or left out. The root uses `container.yml`. The field with `id: parent` may read either `Parent issue` or `Parent epic`; an epic's parent is the root container, so it reads `Parent issue`. The only other headings allowed are on an epic: `Contracts`, then `Independence groups`, which the groups step appends after pre-flight and which always comes last. Carried text shifted two levels never produces a `###` heading unless the specification has a `#` heading inside a numbered section, which this check catches.
+Read the `label` of every non-markdown field in `.github/ISSUE_TEMPLATE/epic.yml`, `container.yml`, and `task.yml`, with its `validations.required` flag. A repository without one of these forms uses the default form this package ships in `fixtures/ISSUE_TEMPLATE/`. List the body's `### ` headings outside fenced code. They must be the form's labels in form order: every required label present, optional ones (Implementation notes, Dependencies, Milestone) present or left out. The root uses `container.yml`. The field with `id: parent` may read either `Parent issue` or `Parent epic`; an epic's parent is the root container, so it reads `Parent issue`. The only other headings allowed are on an epic, `Contracts` then `Independence groups`, and on the root, `Independence groups`. The groups step appends `Independence groups` after pre-flight, and it always comes last. Carried text shifted two levels never produces a `###` heading unless the specification has a `#` heading inside a numbered section, which this check catches.
 
 ## Size check (rule `body-size`)
 
-Fill every placeholder with `#9999999` and count characters. The result must be under 65,536. Pre-flight runs before the groups step, so an epic with two or more direct leaf children also counts the largest record that step can append, with each of those leaves as `#9999999` in a group of its own, appended after a blank line:
+Fill every placeholder with `#9999999` and count characters. The result must be under 65,536. Pre-flight runs before the groups step, so an epic with two or more direct leaf children, and the root of a plan with two or more leaves, also counts the largest record that step can append, with each of those leaves (every leaf of the plan, for the root) as `#9999999` in a group of its own, appended after a blank line:
 
 ```markdown
 ### Independence groups

@@ -134,7 +134,7 @@ test('plan --state records the groups and assignee that confirm, dispatched to s
   assert.ok(digest);
   assert.match(
     planned.stdout,
-    /\n\nIndependence groups:\n {2}Phase 0: g1 P0\.1 P0\.3; g2 P0\.2\n {2}Phase 1: none\n {2}Phase 2: none\nTotals: 2 containers, 3 epics, 9 leaves\.\nAssignee: sam\nState: .*notes\nPlan digest: /,
+    /\n\nIndependence groups:\n {2}Plan: none\n {2}Phase 0: g1 P0\.1 P0\.3; g2 P0\.2\n {2}Phase 1: none\n {2}Phase 2: none\nTotals: 2 containers, 3 epics, 9 leaves\.\nAssignee: sam\nState: .*notes\nPlan digest: /,
   );
   const record = JSON.parse(readFileSync(join(state, 'plan.json'), 'utf8'));
   assert.equal(record.digest, digest);

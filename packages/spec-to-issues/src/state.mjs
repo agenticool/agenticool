@@ -63,8 +63,10 @@ export function stateDirectory(directory) {
 }
 
 /**
- * Validates a groups file: each key is an epic, each group a non-empty list
- * of that epic's direct leaf children, and no leaf appears twice.
+ * Validates a groups file: each key is the root container `Plan` or an epic,
+ * each group a non-empty list of leaves, and no leaf appears twice under one
+ * key. `Plan` groups name any leaf of the plan; an epic's name its direct
+ * leaf children.
  * @param {Plan} plan
  * @param {unknown} groups
  * @returns {Groups}
@@ -75,8 +77,13 @@ export function checkGroups(plan, groups) {
       'The groups file must be a JSON object keyed by epic, such as { "Phase 0": [["P0.1"]] }',
     );
   for (const [key, list] of Object.entries(groups)) {
-    if (!plan.items.some((item) => item.key === key && item.kind === 'epic'))
-      throw new Error(`Groups name ${key}, which is not an epic of the plan`);
+    if (
+      key !== 'Plan' &&
+      !plan.items.some((item) => item.key === key && item.kind === 'epic')
+    )
+      throw new Error(
+        `Groups name ${key}, which is neither Plan nor an epic of the plan`,
+      );
     if (
       !Array.isArray(list) ||
       !list.length ||
@@ -95,7 +102,9 @@ export function checkGroups(plan, groups) {
       if (
         !plan.items.some(
           (item) =>
-            item.key === id && item.kind === 'leaf' && item.parent === key,
+            item.key === id &&
+            item.kind === 'leaf' &&
+            (key === 'Plan' || item.parent === key),
         )
       )
         throw new Error(`Groups for ${key} name ${id}, which is not its leaf`);
@@ -123,7 +132,7 @@ export const confirmationDigest = ({ planSha256, groups, assignee }) =>
 /**
  * Records a clean plan, its groups, and its assignee in `<directory>/plan.json`,
  * unconfirmed, and returns the confirmation digest with the text to print:
- * the tree, each epic's groups, the totals, the assignee, the state
+ * the tree, the plan-wide and each epic's groups, the totals, the assignee, the state
  * directory, and the digest.
  * @param {string} directory
  * @param {{
@@ -157,7 +166,7 @@ export function recordPlan(
   const tree = printTree(plan);
   const totals = tree.lastIndexOf('\n\nTotals: ');
   const epics = plan.items
-    .filter((item) => item.kind === 'epic')
+    .filter((item) => item.key === 'Plan' || item.kind === 'epic')
     .map(
       (item) =>
         `  ${item.key}: ${
