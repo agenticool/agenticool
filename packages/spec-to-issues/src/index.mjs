@@ -1,2 +1,17 @@
-// The public API arrives with the package's first feature slice.
-export {};
+export {
+  checkGroups,
+  fileSpec,
+  independenceRecord,
+  PROJECT_POLL,
+  PROJECT_WAIT,
+} from './file.mjs';
+export { main } from './main.mjs';
+export { CREATE_GAP, restClient, RETRIES, WRITE_GAP } from './rest.mjs';
+export {
+  confirmPlan,
+  planDigest,
+  readPlan,
+  recordPlan,
+  sha256,
+  stateDirectory,
+} from './state.mjs';

@@ -13,6 +13,8 @@ Parse a specification written to the spec-slicing format, check its pre-flight r
 - `--json <file>` also writes the parsed plan as JSON on success.
 - `--bodies <dir>` also writes each rendered body, with its `@@issue:KEY@@` placeholders, to `<dir>/<KEY>.md` on success, such as `Plan.md`, `Phase 0.md`, `Stack P1.1.md`, and `P0.1.md`. The directory must be outside any git checkout, so drafts never land in tracked paths; it is created when missing.
 
+`agenticool-spec plan <spec> --state <dir>` also records the plan digest in `<dir>/plan.json` and prints `Plan digest: <sha256>` after the tree. `agenticool-spec confirm <digest> --state <dir>`, `agenticool-spec file <spec> --state <dir> [--assignee <login>] [--groups <file>]`, and `agenticool-spec resume <spec> --state <dir>` file the confirmed plan. Those commands and `--state` live in `@agenticool/spec-to-issues`, which depends on this package, so the bin imports it only when one of them runs and says to install it when it is missing. Its README describes them.
+
 The offline half of `label-exists` reads `.github/labels.json` in the working directory, plus `labels.extra` from `.agents/policy.json` when that file exists. Without `.github/labels.json` the rule is skipped, with a note on stderr. `template-headings` reads `.github/ISSUE_TEMPLATE/epic.yml`, `container.yml`, and `task.yml` in the working directory, and uses the default form in [fixtures/ISSUE_TEMPLATE/](fixtures/ISSUE_TEMPLATE/) for each one that is missing.
 
 ## Exports

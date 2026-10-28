@@ -13,8 +13,14 @@ import {
 } from '@agenticool/spec-parser';
 
 const LABELS_PATH = '.github/labels.json';
+const FILING = ['confirm', 'file', 'resume'];
 const cli = defineCli(
-  'Usage: agenticool-spec plan <spec> [--bodies <dir>] [--json <file>]',
+  `Usage: agenticool-spec plan <spec> [--bodies <dir>] [--json <file>] [--state <dir>]
+       agenticool-spec confirm <digest> --state <dir>
+       agenticool-spec file <spec> --state <dir> [--assignee <login>] [--groups <file>]
+       agenticool-spec resume <spec> --state <dir>
+
+confirm, file, resume, and plan --state need @agenticool/spec-to-issues.`,
   {
     bodies: {
       type: 'string',
@@ -25,8 +31,28 @@ const cli = defineCli(
       type: 'string',
       description: 'Also write the plan as JSON to this file',
     },
+    state: {
+      type: 'string',
+      description:
+        'Also record the plan digest in this state directory for confirm and file',
+    },
   },
 );
+
+// Filing lives in @agenticool/spec-to-issues, which depends on this package,
+// so it is loaded only when a filing command runs.
+const filing = async () => {
+  try {
+    return await import('@agenticool/spec-to-issues');
+  } catch (error) {
+    if (/** @type {any} */ (error)?.code !== 'ERR_MODULE_NOT_FOUND')
+      throw error;
+    throw new Error(
+      'confirm, file, resume, and plan --state need @agenticool/spec-to-issues; install it next to @agenticool/spec-parser',
+      { cause: error },
+    );
+  }
+};
 
 /** @param {string} directory */
 const inCheckout = (directory) => {
@@ -37,6 +63,19 @@ const inCheckout = (directory) => {
 };
 
 try {
+  if (FILING.includes(process.argv[2]))
+    process.exitCode = await (await filing()).main(process.argv.slice(2));
+  else await planCommand();
+} catch (error) {
+  const { message } = /** @type {Error} */ (error);
+  if (error instanceof CliHelp) process.stdout.write(`${message}\n`);
+  else {
+    process.stderr.write(`${message}\n`);
+    process.exitCode = 1;
+  }
+}
+
+async function planCommand() {
   const { options, positionals } = parseCli(process.argv.slice(2), cli);
   if (positionals[0] !== 'plan' || positionals.length !== 2)
     throw cliError(cli, 'Expected plan <spec>');
@@ -83,13 +122,17 @@ try {
       for (const [key, body] of Object.entries(bodies))
         writeFileSync(join(bodiesDir, `${key}.md`), `${body}\n`);
     }
-    process.stdout.write(`${printTree(plan)}\n`);
-  }
-} catch (error) {
-  const { message } = /** @type {Error} */ (error);
-  if (error instanceof CliHelp) process.stdout.write(`${message}\n`);
-  else {
-    process.stderr.write(`${message}\n`);
-    process.exitCode = 1;
+    const digest =
+      typeof options.state === 'string'
+        ? (await filing()).recordPlan(options.state, {
+            spec: positionals[1],
+            text,
+            plan,
+            bodies,
+          })
+        : null;
+    process.stdout.write(
+      `${printTree(plan)}\n${digest ? `\nPlan digest: ${digest}\n` : ''}`,
+    );
   }
 }

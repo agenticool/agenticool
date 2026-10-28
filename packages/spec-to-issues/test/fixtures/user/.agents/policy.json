@@ -1,0 +1,12 @@
+{
+  "binding": {
+    "namespace": "acme",
+    "repository": "example/notes",
+    "project": {
+      "owner": "example",
+      "number": 7,
+      "name": "Notes delivery"
+    },
+    "tokenEnv": "NOTES_PROJECT_TOKEN"
+  }
+}
