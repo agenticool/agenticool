@@ -1,6 +1,6 @@
 # @agenticool/agents
 
-Shared Claude Code and Codex agents and skills, the generator that renders them for a repository, and the review publisher. A consumer repository gets the same roles, routing, checks, and handoffs in both tools without installing anything into a contributor's workstation configuration.
+Shared Claude Code and Codex agents and skills, the generator that renders them for a repository, the review publisher, and the sync that keeps a repository's tracker files and shared agent rules current. A consumer repository gets the same roles, routing, checks, and handoffs in both tools without installing anything into a contributor's workstation configuration.
 
 ## Bins
 
@@ -9,7 +9,8 @@ Shared Claude Code and Codex agents and skills, the generator that renders them 
 | Command | What it does |
 | --- | --- |
 | `generate` | Renders every shared and local source for both tools and the shared rules, writes the output into the repository, removes owned output that no source produces any more, and prints every path it owns |
-| `check` | Exits 1 and lists every generated file that is missing, stale, or orphaned; writes nothing |
+| `check` | Exits 1 and lists every generated file that is missing, stale, or orphaned, and every synced file that differs from what `sync` writes; writes nothing |
+| `sync` | Writes the repository files listed in [Synced files](#synced-files) and prints every synced path; prints a note when `workflowLint.pullRequestTarget` does not list the tracker workflows that run on `pull_request_target` |
 | `resolve --tool <claude\|codex> (--role <role> \| --capability <name>) [--model <model>] [--effort <effort>]` | Prints the resolved model, effort, and spawn parameters as JSON; unsupported values exit 1 |
 | `publish-review --pr <N> --base <sha> --head <sha> --report <file>` | Posts one finished code review to an open pull request, or prints `Review not posted: <reason>` and exits 1 |
 
@@ -31,6 +32,11 @@ Unknown or missing commands exit 2 with the help text; any other usage error exi
 | `publishReview(policy, { pr, base, head, report }, run?)` | The `publish-review` command; `run` stands in for `execFileSync` |
 | `parseReviewReport(text)`, `reviewEvent(identity)`, `reviewBody(policy, review)` | The verdict and reviewed SHAs of a report, the review event for a verdict and identity, and the posted body |
 | `REVIEW_VERDICTS`, `ReviewNotPosted` | The verdicts a report may carry, and the error for every review that was not posted |
+| `sync(base?)`, `syncCheck(base?)` | The `sync` command and its part of `check`; `sync` writes only files whose content differs and returns every synced path, `syncCheck` the synced paths that are missing or differ |
+| `renderSync(base?)` | Every synced file, as a `Map` from repository-relative path to the content `sync` writes, given the files already in the repository |
+| `replaceBlock(text, name, content, comment, path)` | Replaces one marked block in a file's text, or appends it when the file has none; fails on unbalanced markers |
+| `unlistedPullRequestTarget(base?)` | The tracker caller workflows that run on `pull_request_target` and that `workflowLint.pullRequestTarget` does not list |
+| `AGENTS_SECTIONS`, `AGENT_LOCAL_FILES`, `BROWSER_MCP`, `PULL_REQUEST_TARGET` | The shared `AGENTS.md` sections in append order, the `.gitignore` entries, the browser MCP servers and their `npx` arguments, and the caller workflows that run on `pull_request_target` |
 | `main(args, base?)` | The command line, returning the exit code |
 
 ## Config keys
@@ -45,7 +51,15 @@ The generator reads `.agents/policy.json` through `@agenticool/policy` and requi
 | `local.roles`, `local.workflows` | Directories of repository-only role and workflow sources; default `.agents/local/roles` and `.agents/local/workflows` |
 | `implementationEffort` | Read by the delivery sources, not by the generator |
 
-`publish-review` requires the full `binding`.
+`publish-review` requires the full `binding`. `sync` requires the full `binding` plus `binding.tokenEnv`, and reads:
+
+| Key | Use |
+| --- | --- |
+| `binding.tokenEnv` | The token variable the tracker caller workflows pass to the reusable workflows |
+| `binding.docs.triage` | Where `ISSUE_TRIAGE.md` is written |
+| `binding.features.browserMcp` | When true, `sync` also writes the browser MCP configuration; default false |
+| `labels.extra` | Repository labels added to the base catalog in `.github/labels.json`; one with the name of a base label replaces it |
+| `workflowLint.pullRequestTarget` | Read only for the note; `sync` never edits `policy.json` |
 
 ## Sources
 
@@ -80,9 +94,12 @@ The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `secu
 
 ### Set up a repository
 
-1. Install the package and write `.agents/policy.json` with the keys above. Every shared role needs a `roles` entry.
-2. Run `npx agenticool-agents generate` and commit the output.
-3. Run `npx agenticool-agents check` in CI, so a pull request whose generated files are stale fails. CI never regenerates or commits on a contributor's behalf.
+1. Install the package and write `.agents/policy.json` with the keys above, including `binding.tokenEnv`. Every shared role needs a `roles` entry.
+2. Run `npx agenticool-agents generate` and `npx agenticool-agents sync`, and commit the output.
+3. Add the two caller workflows the `sync` note names, `tracker-pr-issue-status.yml` and `tracker-pr-metadata.yml`, to `workflowLint.pullRequestTarget` in `.agents/policy.json` when the repository runs `agenticool-workflow-lint`.
+4. Read the new `AGENTS.md` sections. The first sync appends each one at the end of the file between its markers. Move a block, markers included, to where it belongs, such as the checks block above the repository's checks table, and delete any of the repository's own sections it replaces. Later syncs rewrite each block where it stands.
+5. Run `npx agenticool-agents check` in CI, so a pull request whose generated or synced files are stale fails. CI never regenerates, syncs, or commits on a contributor's behalf.
+6. Rerun `npx agenticool-agents sync` after upgrading `@agenticool/agents` or `@agenticool/tracker`, or after changing `binding` or `labels.extra`, and commit the result.
 
 | Output | Tool |
 | --- | --- |
@@ -93,6 +110,31 @@ The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `secu
 | `.agents/evidence.md`, `independence-groups.md`, `issue-creation.md`, `review.md`, `worktree-isolation.md` | The shared rules, which roles and skills in both tools read by these paths |
 
 Generated agents and skills carry a header naming their source, and the shared rules are copies of `sources/*.md` with placeholders resolved. The generator removes only files whose names start with the prefix; a contributor's other agents and skills in the same directories stay untouched.
+
+### Synced files
+
+| Path | Content | Ownership |
+| --- | --- | --- |
+| `.github/labels.json` | The `@agenticool/tracker` base label catalog plus `labels.extra`, sorted by name | Whole file |
+| `.github/ISSUE_TEMPLATE/*.yml`, `.github/pull_request_template.md` | The tracker issue forms and pull request template | Whole file |
+| `binding.docs.triage` | The tracker `ISSUE_TRIAGE.md` | Whole file |
+| `.github/workflows/tracker-*.yml` | The tracker caller workflows, pinned to the installed tracker release | Whole file |
+| `AGENTS.md` | The shared sections `checks` (how to run checks, without the repository's table), `delivery` (Autonomous delivery), `code` (Code and comments, with the current-state docs rule), `workflows` (Repository agent workflows), `binding` (Delivery binding), and `branches` (Branch names), from `templates/agents-md/` with placeholders and feature sections resolved | Each section between `<!-- agenticool-agents sync: begin <name> -->` and `<!-- agenticool-agents sync: end <name> -->` |
+| `.gitignore` | `.claude/worktrees/`, `.codex/worktrees/`, `CLAUDE.local.md`, `.claude/settings.local.json`, and `.claude/scheduled_tasks.lock` | The lines between `# agenticool-agents sync: begin agent-local` and its end marker |
+| `.mcp.json` | The `playwright` and `playwriter` servers, only with `binding.features.browserMcp` | Those two entries under `mcpServers`; other servers stay |
+| `.codex/config.toml` | `[mcp_servers.playwright]` and `[mcp_servers.playwriter]`, only with `binding.features.browserMcp` | The lines between `# agenticool-agents sync: begin browser-mcp` and its end marker |
+
+Lines outside a marked block are the repository's own, and `sync` never changes them. A file without a block gets it appended at the end, and `AGENTS.md` is created with a `# Agent rules` heading when it does not exist. On the first sync of `.codex/config.toml`, existing `[mcp_servers.playwright]` and `[mcp_servers.playwriter]` tables move into the block, so the file never defines them twice. A begin marker without its end marker fails the sync. Without `browserMcp`, `sync` and `check` leave both MCP files alone.
+
+### Browser MCP servers
+
+With `binding.features.browserMcp`, both tools start the same stdio servers through `npx -y`: [Playwright MCP](https://github.com/microsoft/playwright-mcp) (`@playwright/mcp@latest --headless`) and [Playwriter](https://github.com/remorses/playwriter) (`playwriter@latest`). Node.js and npm must be on `PATH`; the first start downloads the packages into npm's cache.
+
+Agents use Playwright MCP for headless checks by default. Use Playwriter only for a person's connected Chrome session. Install its Chrome extension and click its icon on each tab to connect it. In this extension setup, Playwriter controls only the Chrome tabs a person connects through the extension. Disconnect a tab through the extension to stop control. Keep browser credentials and personal paths out of repository configuration.
+
+Claude Code asks for approval before using project MCP servers in an interactive session. Codex loads its project MCP configuration after the project is trusted. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp#project-scope) and [Codex MCP documentation](https://developers.openai.com/codex/mcp).
+
+To check discovery, open a fresh session in a new worktree and run `claude mcp list` and `codex mcp list`. Both lists must include `playwright` and `playwriter`. Claude Code may list them as pending approval until a person approves them. Use `/mcp` inside either tool to inspect the active server connections.
 
 ### Add repository-only roles and skills
 
@@ -193,4 +235,4 @@ Trusting the folder activates the agent definitions. Nothing here installs, copi
 - Reports carry requested settings, never verified ones. Codex cannot verify a child's model from inside the child; the thread table or thread view is the ground truth.
 - Prompt overrides are read from natural language by the dispatching skill; the resolver validates the values but cannot see the request.
 - Codex approval rules belong to each contributor. The package ships no exec policy, so a contributor's own rules decide which `git` and `gh` commands run without a prompt.
-- The shared sources also name `AGENTS.md`, `.github/labels.json`, `.github/pull_request_template.md`, and the documents in `binding.docs`, which the consumer repository provides.
+- The shared sources also name the documents in `binding.docs.workflow` and `binding.docs.guides`, which the consumer repository provides; `sync` writes `AGENTS.md`'s shared sections, `.github/labels.json`, `.github/pull_request_template.md`, and `binding.docs.triage`.

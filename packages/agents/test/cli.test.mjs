@@ -115,8 +115,11 @@ test('resolve prints the role policy as JSON', () => {
   assert.equal(capability.spawn.subagent_type, null);
 });
 
-test('generate and check work in the consumer repository', () => {
-  const base = consumer(policy);
+test('generate, sync, and check work in the consumer repository', () => {
+  const base = consumer({
+    ...policy,
+    binding: { ...policy.binding, tokenEnv: 'PROJECT_TOKEN' },
+  });
   const stale = capture(['check'], base);
   assert.equal(stale.status, 1);
   assert.match(
@@ -130,12 +133,18 @@ test('generate and check work in the consumer repository', () => {
       .split('\n')
       .includes(`.claude/agents/${PREFIX}implementer.md`),
   );
+  assert.equal(capture(['check'], base).status, 1);
+  assert.equal(capture(['sync'], base).status, 0);
   assert.deepEqual(capture(['check'], base), {
     status: 0,
     stdout: '',
     stderr: '',
   });
-  assert.equal(run('check').status, 0);
+  const bin = spawnSync(process.execPath, [BIN, 'check'], {
+    cwd: base,
+    encoding: 'utf8',
+  });
+  assert.equal(bin.status, 0, bin.stderr);
 });
 
 const BASE = 'a'.repeat(40);

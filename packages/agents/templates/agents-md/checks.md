@@ -1,0 +1,3 @@
+## Checks
+
+While editing, run only the focused tests for what you touched. Before the first push, run the narrowest set of this repository's checks that covers your change, once. After a fix, rerun the checks that cover what the fix touched, and run more when the fix or a failure shows the change reaches further. Never skip a required check, weaken an assertion, or drop a meaningful behavior test; report pre-existing failures as such. After changing `.agents/policy.json` or a source under `.agents/local/`, run `npx agenticool-agents generate`, then `npx agenticool-agents check`. [Evidence and waiting](.agents/evidence.md) governs retrieval, bounded output, edit inspection, and reuse of successful results.

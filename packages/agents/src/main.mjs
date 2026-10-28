@@ -5,6 +5,7 @@ import { CliHelp, cliError, defineCli, parseCli } from '@agenticool/cli';
 import { loadPolicy, POLICY_PATH, resolve } from '@agenticool/policy';
 import { check, generate } from './generate.mjs';
 import { publishReview, ReviewNotPosted } from './review.mjs';
+import { sync, syncCheck, unlistedPullRequestTarget } from './sync.mjs';
 
 /** @typedef {import('@agenticool/cli').OptionDefinition} OptionDefinition */
 
@@ -28,10 +29,11 @@ const COMMAND_OPTIONS = {
   resolve: ['tool', 'role', 'capability', 'model', 'effort'],
   generate: [],
   check: [],
+  sync: [],
   'publish-review': ['pr', 'base', 'head', 'report'],
 };
 const USAGE =
-  'Usage: agenticool-agents <resolve|generate|check|publish-review> [options]';
+  'Usage: agenticool-agents <resolve|generate|check|sync|publish-review> [options]';
 
 /** @param {string[]} names */
 const optionsFor = (names) =>
@@ -82,6 +84,15 @@ export function main(args, base = process.cwd()) {
     for (const path of generate(base)) console.log(path);
     return 0;
   }
+  if (command === 'sync') {
+    for (const path of sync(base)) console.log(path);
+    const unlisted = unlistedPullRequestTarget(base);
+    if (unlisted.length)
+      console.error(
+        `Note: add ${unlisted.join(' and ')} to workflowLint.pullRequestTarget in ${POLICY_PATH}. agenticool-workflow-lint accepts a workflow that runs on pull_request_target only when that list names it.`,
+      );
+    return 0;
+  }
   if (command === 'publish-review') {
     const reportPath = option('report');
     if (!reportPath) throw new ReviewNotPosted('--report <file> is required');
@@ -111,11 +122,18 @@ export function main(args, base = process.cwd()) {
     return 0;
   }
   const stale = check(base);
-  if (!stale.length) return 0;
-  console.error(
-    `Generated agent definitions are out of date. Run \`npx agenticool-agents generate\` and commit:\n${stale.map((path) => `  ${path}`).join('\n')}`,
-  );
-  return 1;
+  const synced = syncCheck(base);
+  /** @param {string[]} paths */
+  const list = (paths) => paths.map((path) => `  ${path}`).join('\n');
+  if (stale.length)
+    console.error(
+      `Generated agent definitions are out of date. Run \`npx agenticool-agents generate\` and commit:\n${list(stale)}`,
+    );
+  if (synced.length)
+    console.error(
+      `Synced repository files are out of date. Run \`npx agenticool-agents sync\` and commit:\n${list(synced)}`,
+    );
+  return stale.length || synced.length ? 1 : 0;
 }
 
 /**
