@@ -1,0 +1,25 @@
+{
+  "name": "@agenticool/tracker",
+  "version": "0.0.0",
+  "description": "Keep a GitHub Project in step with issues and pull requests: triage, Done and Inbox, containers, membership, closing-issue status, and issue metadata on pull requests.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=24.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticool/agenticool.git",
+    "directory": "packages/tracker"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@agenticool/delivery",
+  "version": "0.0.0",
+  "description": "Read the delivery queue for an issue tree (order, claims, effort, independence groups, stacking) and print canonical branch names.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=24.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticool/agenticool.git",
+    "directory": "packages/delivery"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
