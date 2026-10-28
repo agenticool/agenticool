@@ -1,0 +1,11 @@
+{
+  "packages/github": "0.0.0",
+  "packages/cli": "0.0.0",
+  "packages/policy": "0.0.0",
+  "packages/tracker": "0.0.0",
+  "packages/delivery": "0.0.0",
+  "packages/spec-parser": "0.0.0",
+  "packages/spec-to-issues": "0.0.0",
+  "packages/agents": "0.0.0",
+  "packages/workflow-lint": "0.0.0"
+}

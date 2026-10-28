@@ -1,0 +1,77 @@
+name: 'Release: packages'
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Release Please writes with the GitHub App token below. Pull requests opened
+# with GITHUB_TOKEN would not start the checks the main ruleset requires.
+permissions:
+  contents: read
+
+jobs:
+  update-release-pr:
+    name: Update release PR and create releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
+    steps:
+      - name: Create release token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+
+      - name: Run Release Please
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish-packages:
+    name: Publish released packages to npm
+    needs: update-release-pr
+    if: needs.update-release-pr.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # id-token lets npm publish through trusted publishing and sign provenance.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .tool-versions
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: npm run check
+
+      # NPM_TOKEN is needed only for a package's first publish: npm accepts a
+      # trusted publisher only for a package that already exists. Once every
+      # package has one, the secret can be deleted and npm uses OIDC alone.
+      - name: Publish each released package
+        env:
+          PATHS_RELEASED: ${{ needs.update-release-pr.outputs.paths_released }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for path in $(node -e 'for (const p of JSON.parse(process.env.PATHS_RELEASED)) console.log(p)'); do
+            npm publish --workspace "$path" --provenance --access public
+          done

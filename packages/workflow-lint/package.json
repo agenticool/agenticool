@@ -1,0 +1,25 @@
+{
+  "name": "@agenticool/workflow-lint",
+  "version": "0.0.0",
+  "description": "Lint a repository's GitHub Actions workflows: names, timeouts, checkout credentials, Node version source, and pull_request_target safety.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=24.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticool/agenticool.git",
+    "directory": "packages/workflow-lint"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

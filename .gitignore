@@ -1,0 +1,16 @@
+node_modules/
+coverage/
+*.log
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Agent-owned linked worktrees and local agent files
+.claude/worktrees/
+.codex/worktrees/
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

@@ -1,0 +1,25 @@
+{
+  "name": "@agenticool/agents",
+  "version": "0.0.0",
+  "description": "Shared Claude Code and Codex agents and skills, the generator that renders them for a repository, and the review publisher.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=24.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticool/agenticool.git",
+    "directory": "packages/agents"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
