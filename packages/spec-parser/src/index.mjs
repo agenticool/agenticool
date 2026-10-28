@@ -8,3 +8,9 @@ export {
 } from './parse.mjs';
 export { preflight, RULES } from './rules.mjs';
 export { printTree } from './tree.mjs';
+export {
+  checkBodies,
+  loadIssueForms,
+  readIssueForm,
+  render,
+} from './render.mjs';

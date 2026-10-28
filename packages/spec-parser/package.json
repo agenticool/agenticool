@@ -11,6 +11,7 @@
     "src",
     "bin",
     "spec-slicing.md",
+    "body-shapes.md",
     "fixtures"
   ],
   "bin": {
