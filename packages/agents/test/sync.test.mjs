@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { renderTemplate } from '@agenticool/tracker';
+import { renderTemplate, TEMPLATES } from '@agenticool/tracker';
 import {
   AGENT_LOCAL_FILES,
   AGENTS_SECTIONS,
@@ -534,5 +534,59 @@ test('the sync command prints every synced path and a note for unlisted pull_req
   assert.equal(
     read(base, '.agents/policy.json'),
     JSON.stringify(bound(policy)),
+  );
+});
+
+// CONTRIBUTING.md is a guide for people; agents load only the files below and
+// what `binding.docs.guides` names.
+test('no shared source, AGENTS.md section, tracker template, or generated file names CONTRIBUTING.md', () => {
+  const roots = [
+    SOURCES,
+    fileURLToPath(new URL('../templates/agents-md/', import.meta.url)),
+    fileURLToPath(TEMPLATES),
+  ];
+  const files = roots.flatMap((root) =>
+    readdirSync(root, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => join(entry.parentPath, entry.name)),
+  );
+  assert.ok(files.some((path) => path.endsWith('ISSUE_TRIAGE.md')));
+  for (const path of files)
+    assert.doesNotMatch(readFileSync(path, 'utf8'), /CONTRIBUTING/, path);
+  const base = synced();
+  for (const [path, content] of [...render(base), ...renderSync(base)])
+    assert.doesNotMatch(content, /CONTRIBUTING/, path);
+});
+
+test('the synced files carry the workflow naming, Status, and dependency rules', () => {
+  const base = synced();
+  const naming = section(
+    read(base, 'AGENTS.md'),
+    'GitHub Actions workflow names',
+  );
+  for (const rule of [
+    '`<area>-<purpose>.yml`',
+    '`workflowLint.areas`',
+    'starts with `_` and a `name` that ends in ` (reusable)`',
+    'Job IDs are kebab-case',
+    'Every job and every step has a name',
+    '`run-name` with an expression',
+    '`workflowLint.exclude`',
+    '`npx agenticool-workflow-lint`',
+  ])
+    assert.ok(naming.includes(rule), rule);
+  const triage = read(base, 'ISSUE_TRIAGE.md');
+  const status = section(triage, 'Status');
+  for (const name of ['Inbox', 'Ready', 'In progress', 'In review', 'Done'])
+    assert.match(status, new RegExp(`^\\| ${name}\\b`, 'm'), name);
+  assert.match(status, /Automation, whenever the issue closes/);
+  assert.match(status, /when an issue in Done reopens/);
+  assert.match(status, /An agent sets only In progress/);
+  const dependencies = section(triage, 'Dependencies');
+  assert.match(dependencies, /blocked-by relationship on the issue that waits/);
+  assert.ok(
+    dependencies.includes(
+      `.agents/skills/${PREFIX}implement/references/delivery.md`,
+    ),
   );
 });

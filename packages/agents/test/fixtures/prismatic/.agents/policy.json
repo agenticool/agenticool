@@ -12,7 +12,7 @@
     "docs": {
       "triage": "ISSUE_TRIAGE.md",
       "workflow": "AGENTS.md",
-      "guides": ["CONTRIBUTING.md"]
+      "guides": ["AGENTS.md"]
     },
     "features": {
       "infrastructure": false

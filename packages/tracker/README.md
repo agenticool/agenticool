@@ -31,7 +31,7 @@ The package exports the tracker core, the triage reconcilers, container closure,
 | `labels.json` | `.github/labels.json`, the base label catalog; `labels.extra` adds repository labels |
 | `ISSUE_TEMPLATE/bug.yml`, `config.yml`, `container.yml`, `epic.yml`, `task.yml` | `.github/ISSUE_TEMPLATE/` |
 | `pull_request_template.md` | `.github/pull_request_template.md` |
-| `ISSUE_TRIAGE.md` | The path in `binding.docs.triage` |
+| `ISSUE_TRIAGE.md` | The path in `binding.docs.triage`: severity, Priority, and Size; Status meanings and who sets each; blocked-by dependencies; labels; and the leaf, container, and epic hierarchy |
 | `workflows/tracker-issue-states.yml`, `tracker-project-membership.yml`, `tracker-pr-issue-status.yml`, `tracker-pr-metadata.yml` | `.github/workflows/`, the caller workflows |
 
 ## Reusable workflows
