@@ -1,0 +1,7 @@
+{
+  "binding": {
+    "repository": "acme/widgets",
+    "project": { "owner": "acme", "number": 7, "name": "Widgets delivery" },
+    "tokenEnv": "WIDGETS_PROJECT_TOKEN"
+  }
+}

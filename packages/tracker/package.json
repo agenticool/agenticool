@@ -10,6 +10,10 @@
   "files": [
     "src"
   ],
+  "dependencies": {
+    "@agenticool/github": "^0.0.0",
+    "@agenticool/policy": "^0.0.0"
+  },
   "engines": {
     "node": ">=24.2"
   },
