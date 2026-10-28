@@ -6,9 +6,10 @@ on:
       - main
   workflow_dispatch:
 
-# Release Please writes with the GitHub App token when RELEASE_PLEASE_APP_ID
-# is set, because pull requests opened with GITHUB_TOKEN do not start checks.
-# Without the app it falls back to GITHUB_TOKEN.
+# Release Please runs only with the GitHub App token: this organization does
+# not let GITHUB_TOKEN create pull requests, and pull requests opened with it
+# would not start checks. Until RELEASE_PLEASE_APP_ID is set, the job warns
+# and skips releases. The app token carries the app's own permissions.
 permissions:
   contents: read
 
@@ -17,16 +18,25 @@ jobs:
     name: Update release PR and create releases
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write
-      pull-requests: write
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
     steps:
+      - name: Check for the release app
+        id: release-app
+        env:
+          APP_ID: ${{ vars.RELEASE_PLEASE_APP_ID }}
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "::warning::RELEASE_PLEASE_APP_ID is not set; skipping releases"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create release token
         id: app-token
-        if: vars.RELEASE_PLEASE_APP_ID != ''
+        if: steps.release-app.outputs.configured == 'true'
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
@@ -34,9 +44,10 @@ jobs:
 
       - name: Run Release Please
         id: release
+        if: steps.release-app.outputs.configured == 'true'
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         with:
-          token: ${{ steps.app-token.outputs.token || github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 

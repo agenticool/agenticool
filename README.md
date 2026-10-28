@@ -56,7 +56,7 @@ npm run check   # format, lint, typecheck, and tests with a 90% coverage gate
 
 Each package has its own version, changelog, and tag (`<package>-vX.Y.Z`). release-please reads the Conventional Commit title of each squash-merged pull request and keeps one release pull request open for every package with pending changes. Its `node-workspace` plugin bumps a package whenever an internal dependency it uses is released. Merging the release pull request creates the releases, and the `Release: packages` workflow publishes the released packages to npm with provenance.
 
-Without any setup, release-please runs with `GITHUB_TOKEN`, and merging a release pull request creates tags and GitHub releases but publishes nothing. Full releases need:
+Releases start once a release GitHub App is configured. Until then, the `Release: packages` workflow warns that `RELEASE_PLEASE_APP_ID` is not set and skips releases, because this organization does not let `GITHUB_TOKEN` create pull requests. Full releases need:
 
-- A GitHub App that can write contents and pull requests, with its ID in the `RELEASE_PLEASE_APP_ID` variable and its private key in the `RELEASE_PLEASE_APP_PRIVATE_KEY` secret.
+- A GitHub App that can write contents and pull requests, with its ID in the `RELEASE_PLEASE_APP_ID` variable and its private key in the `RELEASE_PLEASE_APP_PRIVATE_KEY` secret. With only the app, merging a release pull request creates tags and GitHub releases but publishes nothing.
 - The `NPM_PUBLISH_ENABLED` variable set to `true`, and npm trusted publishing for each package, pointing at `release-packages.yml`. npm accepts a trusted publisher only for a package that already exists, so each package's first publish uses an `NPM_TOKEN` secret, which can be deleted once every package has a trusted publisher.
