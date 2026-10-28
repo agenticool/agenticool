@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./policy.schema.json": "./src/policy.schema.json"
   },
   "files": [
     "src"
