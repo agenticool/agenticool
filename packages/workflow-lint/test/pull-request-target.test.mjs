@@ -196,6 +196,34 @@ test('a job that calls a reusable workflow fails', () => {
   );
 });
 
+test('an agenticool reusable workflow pinned at a release tag or commit passes', () => {
+  /** @param {string} uses */
+  const call = (uses) =>
+    problems({
+      [FILE]: `on: pull_request_target\njobs:\n  call:\n    uses: ${uses}\n`,
+    });
+  const reusable =
+    'agenticool/agenticool/.github/workflows/_tracker-pr-metadata';
+  for (const uses of [
+    `${reusable}.yml@tracker-v1.2.3`,
+    `${reusable}.yaml@${'a'.repeat(40)}`,
+  ])
+    assert.deepEqual(call(uses), [], uses);
+  for (const uses of [
+    `${reusable}.yml@main`,
+    `${reusable}.yml@v1`,
+    `${reusable}.yml@${'a'.repeat(39)}`,
+    'someone/agenticool/.github/workflows/_tracker-pr-metadata.yml@tracker-v1.2.3',
+    'agenticool/other/.github/workflows/_tracker-pr-metadata.yml@tracker-v1.2.3',
+    './.github/workflows/_tracker-pr-metadata.yml',
+  ])
+    assert.deepEqual(
+      call(uses),
+      [`call calls a reusable workflow: ${uses}`],
+      uses,
+    );
+});
+
 test('the same steps pass outside pull_request_target', () => {
   assert.deepEqual(
     lint(

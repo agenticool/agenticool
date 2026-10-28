@@ -571,7 +571,7 @@ test('both PR tracker workflows skip edits that leave the body unchanged', () =>
   }
 });
 
-test('rendered caller workflows follow the workflow naming and timeout rules', (t) => {
+test('rendered caller workflows pass the workflow lint rules', (t) => {
   const root = mkdtempSync(join(tmpdir(), 'tracker-callers-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const directory = join(root, '.github', 'workflows');
@@ -596,13 +596,10 @@ test('rendered caller workflows follow the workflow naming and timeout rules', (
     },
     repository: REPOSITORY,
   }).filter(({ rule }) => rule !== 'node-version');
-  // The pull_request_target callers run only the reusable workflows'
-  // default-branch code, which the rule cannot see through `uses`.
+  // Callers run no setup-node step of their own, so only the node-version
+  // rule is left out.
   assert.deepEqual(
     problems.map(({ file, rule, message }) => `${file} ${rule} ${message}`),
-    [
-      `.github/workflows/tracker-pr-issue-status.yml pull-request-target calls a reusable workflow: ${uses('tracker-pr-issue-status')}`,
-      `.github/workflows/tracker-pr-metadata.yml pull-request-target calls a reusable workflow: ${uses('tracker-pr-metadata')}`,
-    ],
+    [],
   );
 });
