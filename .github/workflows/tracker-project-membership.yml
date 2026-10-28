@@ -29,6 +29,7 @@ jobs:
     uses: ./.github/workflows/_tracker-project-membership.yml
     with:
       token_env: 'AGENTICOOL_PROJECT_TOKEN'
+      tracker_version: 'workspace'
       issue: ${{ github.event.issue.number }}
     secrets:
       project_token: ${{ secrets.AGENTICOOL_PROJECT_TOKEN }}
@@ -39,6 +40,7 @@ jobs:
     uses: ./.github/workflows/_tracker-project-membership.yml
     with:
       token_env: 'AGENTICOOL_PROJECT_TOKEN'
+      tracker_version: 'workspace'
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
     secrets:
       project_token: ${{ secrets.AGENTICOOL_PROJECT_TOKEN }}

@@ -8,6 +8,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -81,6 +82,7 @@ const DEFAULT_BRANCH = { repository: { default_branch: 'main' } };
 function callsReusable(job, name) {
   assert.equal(job.uses, uses(name));
   assert.equal(job.with.token_env, TOKEN);
+  assert.equal(job.with.tracker_version, version);
   assert.deepEqual(job.secrets, { project_token: `\${{ secrets.${TOKEN} }}` });
 }
 
@@ -89,15 +91,30 @@ function checksOutDefaultBranch(job) {
   const checkout = job.steps.find((/** @type {any} */ step) =>
     step.uses?.startsWith('actions/checkout@'),
   );
-  assert.deepEqual(checkout.with, {
+  const { 'sparse-checkout': sparse, ...rest } = checkout.with;
+  assert.deepEqual(rest, {
     ref: '${{ github.event.repository.default_branch }}',
     'persist-credentials': false,
   });
+  // Cone mode keeps the root files, .tool-versions among them, and the
+  // workspace install adds the packages.
+  /** @param {string} tracker_version */
+  const paths = (tracker_version) =>
+    sparse
+      .replace(/\$\{\{(.*?)\}\}/g, (/** @type {string} */ match) =>
+        expression(match, { inputs: { tracker_version } }),
+      )
+      .split('\n')
+      .filter(Boolean);
+  assert.deepEqual(paths(version), ['.agents']);
+  assert.deepEqual(paths('workspace'), ['.agents', 'packages']);
 }
 
 /** @param {Record<string, any>} job */
 const commandSteps = (job) =>
-  job.steps.filter((/** @type {any} */ step) => step.run?.includes('npx'));
+  job.steps.filter((/** @type {any} */ step) =>
+    /^agenticool-tracker /m.test(step.run ?? ''),
+  );
 
 /** @param {Record<string, any>} step */
 function getsToken(step) {
@@ -178,15 +195,16 @@ test('issue events reconcile one issue; the hourly schedule and manual runs swee
   );
   assert.equal(steps[0].env.SWEEP, 'true');
   for (const step of steps) getsToken(step);
-  // Run the steps with a stand-in for npx that records its arguments and the
-  // exported token, and fails for the command named in FAIL.
-  const directory = mkdtempSync(join(tmpdir(), 'tracker-fake-npx-'));
+  // Run the steps with a stand-in for the installed agenticool-tracker that
+  // records its arguments and the exported token, and fails for the command
+  // named in FAIL.
+  const directory = mkdtempSync(join(tmpdir(), 'tracker-fake-bin-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   writeFileSync(
-    join(directory, 'npx'),
-    `#!/bin/sh\necho "$* $${TOKEN}" >> "$NPX_LOG"\n[ "$3" != "$FAIL" ]\n`,
+    join(directory, 'agenticool-tracker'),
+    `#!/bin/sh\necho "$* $${TOKEN}" >> "$TRACKER_LOG"\n[ "$1" != "$FAIL" ]\n`,
   );
-  chmodSync(join(directory, 'npx'), 0o755);
+  chmodSync(join(directory, 'agenticool-tracker'), 0o755);
   let runs = 0;
   // `failed` reports the command steps only; a failed setup step fails the
   // job on its own.
@@ -209,7 +227,7 @@ test('issue events reconcile one issue; the hourly schedule and manual runs swee
         encoding: 'utf8',
         env: {
           PATH: `${directory}:${process.env.PATH}`,
-          NPX_LOG: log,
+          TRACKER_LOG: log,
           FAIL: fail,
           ISSUE_NUMBER: String(issueNumber),
           TOKEN_ENV: TOKEN,
@@ -220,11 +238,9 @@ test('issue events reconcile one issue; the hourly schedule and manual runs swee
     }
     return { log: readFileSync(log, 'utf8'), failed };
   };
-  const single =
-    '--no agenticool-tracker triage --issue 7 secret\n--no agenticool-tracker containers --issue 7 secret\n';
+  const single = 'triage --issue 7 secret\ncontainers --issue 7 secret\n';
   assert.deepEqual(run(7), { log: single, failed: false });
-  const sweep =
-    '--no agenticool-tracker membership secret\n--no agenticool-tracker triage secret\n--no agenticool-tracker containers secret\n';
+  const sweep = 'membership secret\ntriage secret\ncontainers secret\n';
   assert.deepEqual(run(0), { log: sweep, failed: false });
   // A failed sweep still lets the later sweeps run, and the job fails.
   for (const fail of ['membership', 'triage', 'containers'])
@@ -367,7 +383,7 @@ test('the workflow adds opened issues and sweeps by hand', () => {
   for (const job of Object.values(workflow.jobs)) {
     checksOutDefaultBranch(job);
     const steps = commandSteps(job);
-    assert.match(steps[0].run, /\nnpx --no agenticool-tracker membership\n$/);
+    assert.match(steps[0].run, /\nagenticool-tracker membership\n$/);
     for (const step of steps) getsToken(step);
   }
   assert.equal(commandSteps(workflow.jobs['add-missing-issues']).length, 1);
@@ -393,7 +409,7 @@ test('opened issues are added to the project, then triaged once', () => {
   assert.equal(triage.name, 'Triage the new issue');
   assert.match(
     triage.run,
-    /\nnpx --no agenticool-tracker triage --issue "\$ISSUE_NUMBER"\n$/,
+    /\nagenticool-tracker triage --issue "\$ISSUE_NUMBER"\n$/,
   );
   assert.deepEqual(Object.keys(triage.env).sort(), [
     'ISSUE_NUMBER',
@@ -482,7 +498,7 @@ test('status events are limited and run default-branch code', () => {
   checksOutDefaultBranch(job);
   const [run] = commandSteps(job);
   getsToken(run);
-  assert.match(run.run, /\nnpx --no agenticool-tracker pr-status\n$/);
+  assert.match(run.run, /\nagenticool-tracker pr-status\n$/);
   assert.equal(run.env.PR_NUMBER, '${{ inputs.pull_request }}');
   assert.equal(run.env.PR_ACTION, '${{ inputs.action }}');
   assert.equal(run.env.DRY_RUN, '${{ inputs.dry_run }}');
@@ -527,7 +543,7 @@ test('metadata runs for pull requests and by hand with a dry-run default', () =>
   checksOutDefaultBranch(job);
   const [run] = commandSteps(job);
   getsToken(run);
-  assert.match(run.run, /\nnpx --no agenticool-tracker pr-metadata\n$/);
+  assert.match(run.run, /\nagenticool-tracker pr-metadata\n$/);
   assert.equal(run.env.PR_NUMBER, '${{ inputs.pull_request }}');
 });
 
@@ -596,6 +612,87 @@ test('callers pass only the project token, the one secret each reusable workflow
         required: false,
       },
     });
+  }
+});
+
+test('every job installs only the tracker at the caller version, outside the checkout', (t) => {
+  // The real path, since bash reports $PWD without macOS's /var symlink.
+  const directory = realpathSync(
+    mkdtempSync(join(tmpdir(), 'tracker-install-')),
+  );
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const bin = join(directory, 'bin');
+  const checkout = join(directory, 'checkout');
+  const temp = join(directory, 'temp');
+  mkdirSync(bin);
+  mkdirSync(checkout);
+  // A stand-in for npm that records its arguments.
+  writeFileSync(join(bin, 'npm'), '#!/bin/sh\necho "$*" >> "$NPM_LOG"\n');
+  chmodSync(join(bin, 'npm'), 0o755);
+  let runs = 0;
+  /**
+   * @param {Record<string, any>} step
+   * @param {string} trackerVersion
+   */
+  const install = (step, trackerVersion) => {
+    const log = join(directory, `npm-${runs}`);
+    const path = join(directory, `path-${runs++}`);
+    writeFileSync(log, '');
+    writeFileSync(path, '');
+    const result = spawnSync('bash', ['-e', '-c', step.run], {
+      cwd: checkout,
+      encoding: 'utf8',
+      env: {
+        PATH: `${bin}:${process.env.PATH}`,
+        NPM_LOG: log,
+        GITHUB_PATH: path,
+        RUNNER_TEMP: temp,
+        TRACKER_VERSION: trackerVersion,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return { npm: readFileSync(log, 'utf8'), path: readFileSync(path, 'utf8') };
+  };
+  for (const name of [
+    'tracker-issue-states',
+    'tracker-pr-issue-status',
+    'tracker-pr-metadata',
+    'tracker-project-membership',
+  ]) {
+    const workflow = reusable(name);
+    assert.deepEqual(workflow.on.workflow_call.inputs.tracker_version, {
+      description:
+        "Version of @agenticool/tracker to install; `workspace` installs the checkout's workspace packages instead",
+      type: 'string',
+      required: true,
+    });
+    for (const [id, job] of Object.entries(workflow.jobs)) {
+      const label = `${name} ${id}`;
+      const steps = job.steps.filter((/** @type {any} */ step) =>
+        step.run?.includes('npm '),
+      );
+      assert.deepEqual(
+        steps.map((/** @type {any} */ step) => step.name),
+        ['Install the tracker'],
+        label,
+      );
+      const [step] = steps;
+      // The install step never sees the project token.
+      assert.deepEqual(
+        step.env,
+        { TRACKER_VERSION: '${{ inputs.tracker_version }}' },
+        label,
+      );
+      assert.deepEqual(install(step, '1.2.3'), {
+        npm: `install --prefix ${temp}/agenticool --no-save --no-audit --no-fund @agenticool/tracker@1.2.3\n`,
+        path: `${temp}/agenticool/node_modules/.bin\n`,
+      });
+      // Only the hosting repository's workspace path installs the checkout.
+      assert.deepEqual(install(step, 'workspace'), {
+        npm: 'ci\n',
+        path: `${checkout}/node_modules/.bin\n`,
+      });
+    }
   }
 });
 

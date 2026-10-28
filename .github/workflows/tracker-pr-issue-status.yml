@@ -21,6 +21,7 @@ jobs:
     uses: ./.github/workflows/_tracker-pr-issue-status.yml
     with:
       token_env: 'AGENTICOOL_PROJECT_TOKEN'
+      tracker_version: 'workspace'
       pull_request: ${{ github.event.pull_request.number }}
       action: ${{ github.event.action }}
     secrets:

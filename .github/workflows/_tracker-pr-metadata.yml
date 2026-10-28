@@ -1,9 +1,9 @@
 # Copies the labels, assignees, and shared milestone of the issues a pull
 # request references to the pull request. Callers start from
 # templates/workflows/tracker-pr-metadata.yml in @agenticool/tracker, on
-# pull_request_target. The steps run the agenticool-tracker that the caller's
-# default-branch package-lock.json installs, never pull request code, so the
-# caller's default branch must list @agenticool/tracker in package.json.
+# pull_request_target. The steps install only @agenticool/tracker at the
+# caller's tracker_version, outside the checkout, and run it against the
+# caller's default-branch .agents/policy.json, never pull request code.
 
 name: 'Tracker: copy issue metadata to PR (reusable)'
 
@@ -12,6 +12,10 @@ on:
     inputs:
       token_env:
         description: Environment variable the CLI reads the Projects token from, the same name as binding.tokenEnv
+        type: string
+        required: true
+      tracker_version:
+        description: Version of @agenticool/tracker to install; `workspace` installs the checkout's workspace packages instead
         type: string
         required: true
       pull_request:
@@ -57,14 +61,28 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+          # Cone mode keeps root files such as .tool-versions. The workspace
+          # install also needs the packages.
+          sparse-checkout: |
+            .agents
+            ${{ inputs.tracker_version == 'workspace' && 'packages' || '' }}
       - name: Set up Node.js
         if: steps.token.outputs.set == 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .tool-versions
-      - name: Install dependencies
+      - name: Install the tracker
         if: steps.token.outputs.set == 'true'
-        run: npm ci
+        env:
+          TRACKER_VERSION: ${{ inputs.tracker_version }}
+        run: |
+          if [ "$TRACKER_VERSION" = workspace ]; then
+            npm ci
+            echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+          else
+            npm install --prefix "$RUNNER_TEMP/agenticool" --no-save --no-audit --no-fund "@agenticool/tracker@$TRACKER_VERSION"
+            echo "$RUNNER_TEMP/agenticool/node_modules/.bin" >> "$GITHUB_PATH"
+          fi
       - name: Copy labels, assignees, and milestone
         if: steps.token.outputs.set == 'true'
         env:
@@ -74,4 +92,4 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           export "$TOKEN_ENV=$PROJECT_TOKEN"
-          npx --no agenticool-tracker pr-metadata
+          agenticool-tracker pr-metadata
