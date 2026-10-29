@@ -146,7 +146,7 @@ To check discovery, open a fresh session in a new worktree and run `claude mcp l
 
 Put a repository-only role in `.agents/local/roles/<name>.md` (with a `roles` entry) and a skill in `.agents/local/workflows/<name>.md`, with its references in `.agents/local/workflows/<name>/`. Local sources use the same syntax and shared includes, and their generated headers name the local file. Local sources keep the names you give them, with no prefix added. A local source whose name starts with `ac-`, the prefix reserved for shared roles and workflows, fails generation, so a local source never replaces shared behavior.
 
-The generated `agents` skill tells a consumer where each change goes: models, efforts, and the binding in `.agents/policy.json`, repository-only roles and skills under `.agents/local/`, and shared roles, skills, and rules upstream in this package. It regenerates with `npx agenticool-agents generate` and `sync` and verifies with `check`.
+The generated `ac-agent-config` skill tells a consumer where each change goes: models, efforts, and the binding in `.agents/policy.json`, repository-only roles and skills under `.agents/local/`, and shared roles, skills, and rules upstream in this package. It regenerates with `npx agenticool-agents generate` and `sync` and verifies with `check`.
 
 ### Agents and skills
 

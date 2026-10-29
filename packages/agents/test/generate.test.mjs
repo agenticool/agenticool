@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -378,8 +384,14 @@ test('shared agents and skills carry the ac- prefix and nothing routes to an unp
   const route = new RegExp(
     `(?:[/$]|_type: |--role |role=)(?:${bare})(?![\\w-])|\`(?:${bare})\``,
   );
+  // The synced files, such as the AGENTS.md routing table, route too.
+  const base = consumer(policy);
+  const output = [...files];
+  for (const path of sync(base))
+    output.push([path, readFileSync(join(base, path), 'utf8')]);
+  assert.ok(output.some(([path]) => path === 'AGENTS.md'));
   // The request keyword `implementer` and the filing state directory are not routes.
-  for (const [path, content] of files)
+  for (const [path, content] of output) {
     assert.doesNotMatch(
       content
         .replaceAll('`implementer` prefixes', '')
@@ -387,6 +399,9 @@ test('shared agents and skills carry the ac- prefix and nothing routes to an unp
       route,
       path,
     );
+    // The skill's old name, which Claude Code's built-in `/agents` shadowed.
+    assert.doesNotMatch(content, /`agents` skill|[`\s][/$]agents\b/, path);
+  }
 });
 
 test('include inserts a shared source and rejects an unknown one', () => {
@@ -721,6 +736,30 @@ test('the shared rules land in .agents with the binding resolved', () => {
     String(files.get('.agents/issue-creation.md')),
     /^# Other issue creation\n[\s\S]*\[TRIAGE\.md\]\(\.\.\/TRIAGE\.md\)/,
   );
+});
+
+test('regenerating removes an old unprefixed skill so a local workflow can take its name', () => {
+  const base = consumer(policy);
+  generate(base);
+  // Output from before the ac- prefix: the skill files carry the generated header.
+  for (const tool of ['.claude', '.agents']) {
+    const skill = join(base, tool, 'skills/implement');
+    mkdirSync(join(skill, 'references'), { recursive: true });
+    for (const file of ['SKILL.md', 'references/delivery.md'])
+      writeFileSync(
+        join(skill, file),
+        readFileSync(join(base, tool, 'skills/ac-implement', file), 'utf8'),
+      );
+  }
+  generate(base);
+  for (const tool of ['.claude', '.agents'])
+    assert.equal(existsSync(join(base, tool, 'skills/implement')), false, tool);
+  mkdirSync(join(base, '.agents/local/workflows'), { recursive: true });
+  writeFileSync(
+    join(base, '.agents/local/workflows/implement.md'),
+    flow.replace('flow', 'implement'),
+  );
+  assert.ok(generate(base).includes('.claude/skills/implement/SKILL.md'));
 });
 
 test('generate refuses to overwrite an agent or skill it did not generate', () => {
