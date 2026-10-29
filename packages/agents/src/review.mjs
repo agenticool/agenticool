@@ -2,12 +2,11 @@
 // review-code skill passes its finished report here, and this posts exactly
 // one review to the pull request it reviewed, or posts nothing and says why.
 import { execFileSync } from 'node:child_process';
-import { failureMessage, ghRest } from '@agenticool/github';
-import { binding, prefix, repository } from '@agenticool/policy';
+import { failureMessage, ghRest, binding, repository } from '@agenticool/core';
 
 /**
  * @typedef {Record<string, any>} Policy
- * @typedef {import('@agenticool/github').Run} Run
+ * @typedef {import('@agenticool/core').Run} Run
  */
 
 export const REVIEW_VERDICTS = ['APPROVE', 'REQUEST CHANGES', 'BLOCKED'];
@@ -91,7 +90,7 @@ export function reviewEvent({ verdict, viewer, author, identityError }) {
  */
 export function reviewBody(policy, { report, base, head, note }) {
   const parts = [
-    `${binding(policy).label} code review of \`${base}..${head}\`, requested through \`${prefix(policy)}review-code\`.`,
+    `${binding(policy).label} code review of \`${base}..${head}\`, requested through \`review-code\`.`,
   ];
   if (note) parts.push(`> ${note}`);
   parts.push(String(report).trim());

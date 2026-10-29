@@ -8,8 +8,8 @@ export const REPOSITORY = 'agenticool/agenticool';
 
 /** @type {import('./workflow-lint/workflows.mjs').Config} */
 export const CONFIG = {
-  areas: { ci: 'CI', release: 'Release', tracker: 'Tracker' },
-  pullRequestTarget: ['tracker-pr-issue-status.yml', 'tracker-pr-metadata.yml'],
+  areas: { ci: 'CI', release: 'Release', board: 'Board' },
+  pullRequestTarget: ['board-pr-issue-status.yml', 'board-pr-metadata.yml'],
   // The branch ruleset requires these jobs as status checks.
   requiredChecks: [
     {

@@ -1,13 +1,13 @@
 ---
 name: review-security
-description: Explicitly requested read-only security review of a pushed {{label}} branch or PR by {{prefix}}security-reviewer (secrets, authn/authz, injection, SSRF, sensitive data, IAM, cloud, CI/OIDC). Only when a person asks for a security review by name; never load this for ordinary delivery or code review.
+description: Explicitly requested read-only security review of a pushed {{label}} branch or PR by security-reviewer (secrets, authn/authz, injection, SSRF, sensitive data, IAM, cloud, CI/OIDC). Only when a person asks for a security review by name; never load this for ordinary delivery or code review.
 argument-hint: "<PR number | PR URL | branch> [scope] [model <name>] [effort <level>]"
 claude:
   disable-model-invocation: true
 codex:
   display_name: "{{label}}: Review security"
-  short_description: "Explicit read-only security review by {{prefix}}security-reviewer"
-  default_prompt: "Use ${{prefix}}review-security to security-review this {{label}} branch."
+  short_description: "Explicit read-only security review by security-reviewer"
+  default_prompt: "Use $review-security to security-review this {{label}} branch."
   allow_implicit_invocation: false
 ---
 # {{label}} review security
@@ -28,10 +28,10 @@ Run `npx agenticool-agents resolve --tool <tool> --role security-reviewer`, addi
 Packet: repo, branch, head SHA, base SHA, scope, the worktree path, and the `Policy:` line.
 
 <!-- claude-only -->
-Use the Agent tool with `subagent_type: {{prefix}}security-reviewer` and the resolver's `model` and `effort` passed explicitly.
+Use the Agent tool with `subagent_type: security-reviewer` and the resolver's `model` and `effort` passed explicitly.
 <!-- /claude-only -->
 <!-- codex-only -->
-Use `spawn_agent` with `agent_type: {{prefix}}security-reviewer`, `model` and `reasoning_effort` from the resolver's `spawn` object, and `fork_turns: "none"`. Always pass both values; the agent file carries neither. An unknown `agent_type` means the project is not trusted in Codex yet; say so and stop.
+Use `spawn_agent` with `agent_type: security-reviewer`, `model` and `reasoning_effort` from the resolver's `spawn` object, and `fork_turns: "none"`. Always pass both values; the agent file carries neither. An unknown `agent_type` means the project is not trusted in Codex yet; say so and stop.
 <!-- /codex-only -->
 
 ## Report

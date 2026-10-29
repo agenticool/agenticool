@@ -1,4 +1,4 @@
-// Repository-file sync. `sync` writes the tracker templates, the shared
+// Repository-file sync. `sync` writes the board templates, the shared
 // AGENTS.md sections, the agent-local `.gitignore` entries, and optionally
 // the browser MCP configuration into a consumer repository; `syncCheck` lists
 // the files that differ from what `sync` would write.
@@ -14,8 +14,8 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { binding, loadPolicy } from '@agenticool/policy';
-import { renderTemplate, TEMPLATES } from '@agenticool/tracker';
+import { binding, loadPolicy } from '@agenticool/core';
+import { renderTemplate, TEMPLATES } from '@agenticool/board';
 import { include, substitute } from './generate.mjs';
 
 /** @typedef {Record<string, any>} Policy */
@@ -118,7 +118,7 @@ function labels(policy) {
   return json(catalog);
 }
 
-/** @param {string} directory under the tracker templates */
+/** @param {string} directory under the board templates */
 const templates = (directory) =>
   readdirSync(new URL(`${directory}/`, TEMPLATES))
     .filter((name) => name.endsWith('.yml'))
@@ -176,7 +176,7 @@ function agentsMd(policy, base) {
  * @param {string} [base] the consumer repository root
  */
 export function renderSync(base = process.cwd()) {
-  const policy = loadPolicy(base, { sections: ['binding'] });
+  const policy = loadPolicy(base, { sections: ['binding.project'] });
   const { docs, features, repository } = binding(policy);
   /** @type {Map<string, string>} */
   const files = new Map();
@@ -192,8 +192,8 @@ export function renderSync(base = process.cwd()) {
   );
   files.set(docs.triage, renderTemplate('ISSUE_TRIAGE.md', policy));
   // The repository that hosts the reusable workflows calls them from its own
-  // checkout, at the caller's commit, rather than at a tracker release, and
-  // runs its workspace tracker, which needs no published version.
+  // checkout, at the caller's commit, rather than at a board release, and
+  // runs its workspace board, which needs no published version.
   const hosted = new RegExp(
     `uses: ${repository.replaceAll('.', '\\.')}/(\\.github/workflows/_[a-z0-9-]+\\.yml)@\\S+`,
     'g',
@@ -205,7 +205,7 @@ export function renderSync(base = process.cwd()) {
       `.github/workflows/${name}`,
       local === text
         ? text
-        : local.replace(/(tracker_version: )'[^']*'/g, "$1'workspace'"),
+        : local.replace(/(board_version: )'[^']*'/g, "$1'workspace'"),
     );
   }
   files.set('AGENTS.md', agentsMd(policy, base));

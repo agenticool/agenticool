@@ -32,7 +32,7 @@ test('file names need <area>-<purpose>.yml, a known area, and its prefix', () =>
     lint('names', {
       [`${W}CI_bad.yml`]: workflow('CI: bad'),
       [`${W}deploy-app.yml`]: workflow('Deploy: app'),
-      [`${W}ci-wrong.yml`]: workflow('Tracker: wrong'),
+      [`${W}ci-wrong.yml`]: workflow('Board: wrong'),
       [`${W}ci-nameless.yml`]: 'on: pull_request\njobs: {}\n',
     }),
     [
@@ -122,8 +122,8 @@ test('workflows not started by a pull request, push, or call name their subject'
 test('workflow_run triggers name existing workflows', () => {
   assert.deepEqual(
     lint('names', {
-      [`${W}tracker-issue-states.yml`]: `run-name: 'Tracker: \${{ github.sha }}'\n${workflow(
-        'Tracker: reconcile issue states',
+      [`${W}board-issue-states.yml`]: `run-name: 'Board: \${{ github.sha }}'\n${workflow(
+        'Board: reconcile issue states',
         "\n  workflow_run:\n    workflows: ['CI: checks', 'CI: missing']",
       )}`,
     }),

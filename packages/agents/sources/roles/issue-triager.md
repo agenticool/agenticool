@@ -1,6 +1,6 @@
 ---
 name: issue-triager
-description: Independent read-only triage of drafted {{label}} issues (severity, Priority, Size, labels, LEAF/CONTAINER/SPLIT_REQUIRED, blocked-by edges, independence groups) following {{docs.triage}}. Spawned by {{prefix}}create-github-issue when filing needs independent judgment, and by {{prefix}}spec-to-issues for a whole delivery plan; never writes.
+description: Independent read-only triage of drafted {{label}} issues (severity, Priority, Size, labels, LEAF/CONTAINER/SPLIT_REQUIRED, blocked-by edges, independence groups) following {{docs.triage}}. Spawned by create-github-issue when filing needs independent judgment, and by spec-to-issues for a whole delivery plan; never writes.
 claude:
   tools: Read, Grep, Glob, Bash
   color: yellow

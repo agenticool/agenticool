@@ -1,27 +1,50 @@
 // Shared fixtures for the generator tests. The fixture consumer carries the
 // prismatic binding and its committed generated output.
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadPolicy, prefix } from '@agenticool/policy';
+import { loadPolicy } from '@agenticool/core';
 
 /** @typedef {Record<string, any>} Policy */
 
-export const FIXTURE = fileURLToPath(
+/**
+ * A git repository whose origin remote is GitHub's `repository`.
+ * @param {string} repository
+ */
+export function clone(repository) {
+  const base = mkdtempSync(join(tmpdir(), 'agenticool-agents-'));
+  execFileSync('git', ['init', '-q', base]);
+  execFileSync('git', [
+    '-C',
+    base,
+    'remote',
+    'add',
+    'origin',
+    `https://github.com/${repository}.git`,
+  ]);
+  return base;
+}
+
+export const COMMITTED = fileURLToPath(
   new URL('fixtures/prismatic', import.meta.url),
 );
-export const policy = loadPolicy(FIXTURE);
-export const PREFIX = prefix(policy);
+// The committed fixture consumer in a clone of samlevin/prismatic, so its
+// origin remote names the repository.
+export const FIXTURE = clone('samlevin/prismatic');
+cpSync(COMMITTED, FIXTURE, { recursive: true });
+export const policy = Object.assign(loadPolicy(FIXTURE), {
+  repository: 'samlevin/prismatic',
+});
 // The same policy bound to another repository with no CI-applied infrastructure.
 /** @type {Policy} */
 export const other = {
   ...policy,
+  repository: 'example/other',
   binding: {
-    namespace: 'other',
     label: 'Other',
-    repository: 'example/other',
     project: { owner: 'example', number: 7, name: 'Other delivery' },
     docs: { triage: 'TRIAGE.md', workflow: 'AGENTS.md', guides: ['AGENTS.md'] },
     features: { infrastructure: false },
@@ -29,12 +52,13 @@ export const other = {
 };
 
 /**
- * A temporary consumer repository with this policy and these files.
+ * A temporary clone of the policy's repository with this policy and these
+ * files.
  * @param {Policy} value
  * @param {Record<string, string>} [files] consumer-relative path to content
  */
-export function consumer(value, files = {}) {
-  const base = mkdtempSync(join(tmpdir(), 'agenticool-agents-'));
+export function consumer({ repository, ...value }, files = {}) {
+  const base = clone(repository);
   for (const [path, content] of Object.entries({
     '.agents/policy.json': JSON.stringify(value),
     ...files,
@@ -76,7 +100,7 @@ export function section(text, heading) {
 // A file of a generated skill, in the Claude Code and the Codex skill.
 /** @param {string} file */
 export function inBoth(file) {
-  return [`.claude/skills/${PREFIX}${file}`, `.agents/skills/${PREFIX}${file}`];
+  return [`.claude/skills/${file}`, `.agents/skills/${file}`];
 }
 
 // Each shared source, relative to the package sources, with its Claude Code
@@ -88,22 +112,17 @@ export function sourcePairs(files) {
   for (const role of Object.keys(policy.roles))
     pairs.push([
       `roles/${role}.md`,
-      [
-        `.claude/agents/${PREFIX}${role}.md`,
-        `.codex/agents/${PREFIX}${role}.toml`,
-      ],
+      [`.claude/agents/${role}.md`, `.codex/agents/${role}.toml`],
     ]);
   for (const path of files.keys()) {
-    const match = path.match(
-      new RegExp(`^\\.claude/skills/${PREFIX}([^/]+)/(.+\\.md)$`),
-    );
+    const match = path.match(/^\.claude\/skills\/([^/]+)\/(.+\.md)$/);
     if (!match) continue;
     const [, skill, file] = match;
     pairs.push([
       file === 'SKILL.md'
         ? `workflows/${skill}.md`
         : `workflows/${skill}/${file}`,
-      [path, `.agents/skills/${PREFIX}${skill}/${file}`],
+      [path, `.agents/skills/${skill}/${file}`],
     ]);
   }
   return pairs;

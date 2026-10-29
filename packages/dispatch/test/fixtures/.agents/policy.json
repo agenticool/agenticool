@@ -1,0 +1,9 @@
+{
+  "binding": {
+    "project": {
+      "owner": "acme-owner",
+      "number": 7,
+      "name": "Widgets delivery"
+    }
+  }
+}

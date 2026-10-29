@@ -1,13 +1,20 @@
 // The agenticool-agents command. It runs in the consumer repository root and
 // reads that repository's `.agents/policy.json`.
 import { readFileSync } from 'node:fs';
-import { CliHelp, cliError, defineCli, parseCli } from '@agenticool/cli';
-import { loadPolicy, POLICY_PATH, resolve } from '@agenticool/policy';
+import {
+  CliHelp,
+  cliError,
+  defineCli,
+  parseCli,
+  loadPolicy,
+  POLICY_PATH,
+  resolve,
+} from '@agenticool/core';
 import { check, generate } from './generate.mjs';
 import { publishReview, ReviewNotPosted } from './review.mjs';
 import { sync, syncCheck } from './sync.mjs';
 
-/** @typedef {import('@agenticool/cli').OptionDefinition} OptionDefinition */
+/** @typedef {import('@agenticool/core').OptionDefinition} OptionDefinition */
 
 /** @type {Record<string, OptionDefinition>} */
 const OPTIONS = {
@@ -67,9 +74,7 @@ export function main(args, base = process.cwd()) {
   if (command === 'resolve') {
     if (options.role && options.capability)
       throw cliError(cli, 'Use --role or --capability, not both');
-    const policy = loadPolicy(base, {
-      sections: ['binding', 'capabilities', 'roles', 'supported'],
-    });
+    const policy = loadPolicy(base);
     const resolved = resolve(policy, {
       tool: option('tool'),
       role: option('role'),
@@ -101,7 +106,7 @@ export function main(args, base = process.cwd()) {
     }
     let policy;
     try {
-      policy = loadPolicy(base, { sections: ['binding'] });
+      policy = loadPolicy(base, { sections: ['binding.project'] });
     } catch (error) {
       throw new ReviewNotPosted(
         `cannot load ${POLICY_PATH}: ${/** @type {Error} */ (error).message}`,

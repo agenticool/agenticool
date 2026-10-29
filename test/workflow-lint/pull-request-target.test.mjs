@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { CONFIG, lint, W } from './helpers.mjs';
 
-const FILE = `${W}tracker-pr-metadata.yml`;
+const FILE = `${W}board-pr-metadata.yml`;
 
 /**
  * @param {string} steps
@@ -42,11 +42,11 @@ test('listed workflows must exist, and unlisted workflows may not use the trigge
   assert.deepEqual(
     lint(
       'pull-request-target',
-      { [`${W}tracker-extra.yml`]: 'on: pull_request_target\njobs: {}\n' },
+      { [`${W}board-extra.yml`]: 'on: pull_request_target\njobs: {}\n' },
       {
         config: {
           ...CONFIG,
-          pullRequestTarget: ['tracker-pr-metadata.yml', 'tracker-gone.yml'],
+          pullRequestTarget: ['board-pr-metadata.yml', 'board-gone.yml'],
         },
       },
     ),
@@ -129,7 +129,7 @@ test('a checkout of the default branch in the base repository passes', () => {
   }
 });
 
-test('the base repository literal comes from binding.repository', () => {
+test('the base repository literal comes from the lint configuration', () => {
   const steps = target(checkout('          repository: octo/widgets\n'));
   assert.deepEqual(problems(steps, 'octo/other'), [
     'build step 1 (Check out) checks out a repository other than the base repository: octo/widgets',
@@ -202,10 +202,9 @@ test('an agenticool reusable workflow pinned at a release tag or commit passes',
     problems({
       [FILE]: `on: pull_request_target\njobs:\n  call:\n    uses: ${uses}\n`,
     });
-  const reusable =
-    'agenticool/agenticool/.github/workflows/_tracker-pr-metadata';
+  const reusable = 'agenticool/agenticool/.github/workflows/_board-pr-metadata';
   for (const uses of [
-    `${reusable}.yml@tracker-v1.2.3`,
+    `${reusable}.yml@board-v1.2.3`,
     `${reusable}.yaml@${'a'.repeat(40)}`,
   ])
     assert.deepEqual(call(uses), [], uses);
@@ -213,9 +212,9 @@ test('an agenticool reusable workflow pinned at a release tag or commit passes',
     `${reusable}.yml@main`,
     `${reusable}.yml@v1`,
     `${reusable}.yml@${'a'.repeat(39)}`,
-    'someone/agenticool/.github/workflows/_tracker-pr-metadata.yml@tracker-v1.2.3',
-    'agenticool/other/.github/workflows/_tracker-pr-metadata.yml@tracker-v1.2.3',
-    './.github/workflows/_tracker-pr-metadata.yml',
+    'someone/agenticool/.github/workflows/_board-pr-metadata.yml@board-v1.2.3',
+    'agenticool/other/.github/workflows/_board-pr-metadata.yml@board-v1.2.3',
+    './.github/workflows/_board-pr-metadata.yml',
   ])
     assert.deepEqual(
       call(uses),
@@ -224,7 +223,7 @@ test('an agenticool reusable workflow pinned at a release tag or commit passes',
     );
 });
 
-test('only agenticool itself may call its tracker workflows locally', () => {
+test('only agenticool itself may call its board workflows locally', () => {
   /**
    * @param {string} uses
    * @param {string} [repository]
@@ -236,13 +235,13 @@ test('only agenticool itself may call its tracker workflows locally', () => {
       },
       repository,
     );
-  const local = './.github/workflows/_tracker-pr-metadata.yml';
+  const local = './.github/workflows/_board-pr-metadata.yml';
   assert.deepEqual(call(local, 'agenticool/agenticool'), []);
   for (const [uses, repository] of /** @type {[string, string?][]} */ ([
     [local, 'example/repo'],
     [local, undefined],
     ['./.github/workflows/_ci-pr-title.yml', 'agenticool/agenticool'],
-    ['./.github/workflows/tracker-pr-metadata.yml', 'agenticool/agenticool'],
+    ['./.github/workflows/board-pr-metadata.yml', 'agenticool/agenticool'],
     [`${local}@main`, 'agenticool/agenticool'],
   ]))
     assert.deepEqual(

@@ -1,0 +1,88 @@
+# Copies the labels, assignees, and shared milestone of the issues a pull
+# request references to the pull request. Callers start from
+# templates/workflows/board-pr-metadata.yml in @agenticool/board, on
+# pull_request_target. The steps install only @agenticool/board at the
+# caller's board_version, outside the checkout, and run it against the
+# caller's default-branch .agents/policy.json, never pull request code.
+
+name: 'Board: copy issue metadata to PR (reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      board_version:
+        description: Version of @agenticool/board to install; `workspace` installs the checkout's workspace packages instead
+        type: string
+        required: true
+      pull_request:
+        description: Pull request number
+        type: number
+        required: true
+      dry_run:
+        description: Preview without writes
+        type: boolean
+        default: false
+    secrets:
+      project_token:
+        description: Projects token, from the AGENTICOOL_PROJECT_TOKEN secret
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  copy-issue-metadata:
+    name: Copy linked issue labels, assignees, and milestone to PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Without the secret the job succeeds with a warning, so a repository
+      # can install the workflows before its project and token exist. A set
+      # but invalid token still fails in the command steps.
+      - name: Check the project token
+        id: token
+        env:
+          PROJECT_TOKEN: ${{ secrets.project_token }}
+        run: |
+          if [ -n "$PROJECT_TOKEN" ]; then
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::AGENTICOOL_PROJECT_TOKEN secret is not set; skipping"
+          fi
+      # Always execute trusted default-branch code, including for fork PRs.
+      - name: Check out the default branch
+        if: steps.token.outputs.set == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          # Cone mode keeps root files such as .tool-versions. The workspace
+          # install also needs the packages.
+          sparse-checkout: |
+            .agents
+            ${{ inputs.board_version == 'workspace' && 'packages' || '' }}
+      - name: Set up Node.js
+        if: steps.token.outputs.set == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .tool-versions
+      - name: Install the board
+        if: steps.token.outputs.set == 'true'
+        env:
+          BOARD_VERSION: ${{ inputs.board_version }}
+        run: |
+          if [ "$BOARD_VERSION" = workspace ]; then
+            npm ci
+            echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+          else
+            npm install --prefix "$RUNNER_TEMP/agenticool" --no-save --no-audit --no-fund "@agenticool/board@$BOARD_VERSION"
+            echo "$RUNNER_TEMP/agenticool/node_modules/.bin" >> "$GITHUB_PATH"
+          fi
+      - name: Copy labels, assignees, and milestone
+        if: steps.token.outputs.set == 'true'
+        env:
+          AGENTICOOL_PROJECT_TOKEN: ${{ secrets.project_token }}
+          PR_NUMBER: ${{ inputs.pull_request }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          agenticool-board pr-metadata

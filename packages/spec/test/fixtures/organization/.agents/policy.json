@@ -1,0 +1,10 @@
+{
+  "binding": {
+    "project": {
+      "owner": "example-org",
+      "ownerType": "organization",
+      "number": 3,
+      "name": "Notes board"
+    }
+  }
+}

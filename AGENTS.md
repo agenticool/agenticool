@@ -2,11 +2,11 @@
 
 These instructions apply to every coding agent, including Claude and Codex.
 
-agenticool is an npm workspaces monorepo of standalone `@agenticool/*` packages under `packages/<name>/`: shared workflow tooling for GitHub repositories that use Claude Code and Codex agents. This repository consumes its own packages: `.agents/policy.json` binds it, and the agent files, tracker files, and the shared sections below come from `npx agenticool-agents generate` and `npx agenticool-agents sync`, which resolve to the local workspaces.
+agenticool is an npm workspaces monorepo of standalone `@agenticool/*` packages under `packages/<name>/`: shared workflow tooling for GitHub repositories that use Claude Code and Codex agents. This repository consumes its own packages: `.agents/policy.json` binds it, and the agent files, board files, and the shared sections below come from `npx agenticool-agents generate` and `npx agenticool-agents sync`, which resolve to the local workspaces.
 
-Run `npm run check` before pushing. It runs the Prettier check, ESLint, `tsc --checkJs`, every test with the 90% coverage gate, `agenticool-agents check`, and the workflow lint in `scripts/workflow-lint.mjs`. After changing `.agents/policy.json`, the agent sources in `packages/agents`, or the tracker templates, rerun `generate` and `sync` and commit the output.
+Run `npm run check` before pushing. It runs the Prettier check, ESLint, `tsc --checkJs`, every test with the 90% coverage gate, `agenticool-agents check`, and the workflow lint in `scripts/workflow-lint.mjs`. After changing `.agents/policy.json`, the agent sources in `packages/agents`, or the board templates, rerun `generate` and `sync` and commit the output.
 
-Each package releases independently through release-please, which reads the Conventional Commit title of each squash-merged pull request, scoped to the package, such as `feat(tracker): ...`. Never edit package versions or `.release-please-manifest.json`.
+Each package releases independently through release-please, which reads the Conventional Commit title of each squash-merged pull request, scoped to the package, such as `feat(board): ...`. Never edit package versions or `.release-please-manifest.json`.
 
 <!-- agenticool-agents sync: begin checks -->
 
@@ -20,11 +20,11 @@ While editing, run only the focused tests for what you touched. Before the first
 
 ## Autonomous delivery
 
-- Authority: a delivery request authorizes issue claims, project moves, commits, pushes, ready-for-review PRs, stack links, and retargeting the base of the delivery owner's own stacked PRs after a merge, as the sync in [stack operations](.agents/skills/agenticool-stack/SKILL.md) does. Filing authorizes issue publication. A manual review of a pull request authorizes one posted review on that PR and nothing else: no edits, no approval, and a change request only for a `REQUEST CHANGES` verdict from a GitHub account other than the PR author. Automatic pre-PR reviews and branch reviews write nothing to GitHub. Merges, deployments, destructive operations, and changes to GitHub repository settings, CI secrets, or agent tool settings require explicit user authorization.
+- Authority: a delivery request authorizes issue claims, project moves, commits, pushes, ready-for-review PRs, stack links, and retargeting the base of the delivery owner's own stacked PRs after a merge, as the sync in [stack operations](.agents/skills/stack/SKILL.md) does. Filing authorizes issue publication. A manual review of a pull request authorizes one posted review on that PR and nothing else: no edits, no approval, and a change request only for a `REQUEST CHANGES` verdict from a GitHub account other than the PR author. Automatic pre-PR reviews and branch reviews write nothing to GitHub. Merges, deployments, destructive operations, and changes to GitHub repository settings, CI secrets, or agent tool settings require explicit user authorization.
 - Before creating or using a worktree, read and follow [Agent worktree isolation](.agents/worktree-isolation.md).
 - When a leaf lacks Priority or Size, set Priority to P2 and Size from the scope, as `ISSUE_TRIAGE.md` defines. Missing tracker metadata alone does not block delivery.
-- [Leaf delivery](.agents/skills/agenticool-implement/references/delivery.md) owns the delivery gate, stacking on unmerged prerequisites, review thresholds, exact-SHA approval, reviewer packets, PRs, and handoff results. A review handoff after the final push sends the review packet that leaf delivery defines, taking the base SHA from `git merge-base <base> HEAD`, and a rework handoff adds the existing PR URL. Reviewers follow [Independent code review](.agents/review.md) and stay read-only. Load those procedures for delivery or review rather than copying them into assignments.
-- Make your own GitHub calls through REST with `gh api`: issues, PRs, comments, labels, assignees, sub-issues (`repos/<repo>/issues/<n>/sub_issues` and `/parent`), issue dependencies (`/dependencies/blocked_by` and `/dependencies/blocking`), and Projects v2 (`users/<owner>/projectsV2/<n>` or `orgs/<owner>/projectsV2/<n>`, with `/fields` and `/items`). `gh issue`, `gh pr`, `gh project`, and `gh api graphql` use GraphQL, whose hourly limit agents share with Actions tokens. Use GraphQL only when REST lacks the operation, such as reading a PR's closing issues, and switch to REST when it is rate-limited. The tracker workflows and `npx agenticool-tracker` keep their GraphQL calls, even when you run them.
+- [Leaf delivery](.agents/skills/implement/references/delivery.md) owns the delivery gate, stacking on unmerged prerequisites, review thresholds, exact-SHA approval, reviewer packets, PRs, and handoff results. A review handoff after the final push sends the review packet that leaf delivery defines, taking the base SHA from `git merge-base <base> HEAD`, and a rework handoff adds the existing PR URL. Reviewers follow [Independent code review](.agents/review.md) and stay read-only. Load those procedures for delivery or review rather than copying them into assignments.
+- Make your own GitHub calls through REST with `gh api`: issues, PRs, comments, labels, assignees, sub-issues (`repos/<repo>/issues/<n>/sub_issues` and `/parent`), issue dependencies (`/dependencies/blocked_by` and `/dependencies/blocking`), and Projects v2 (`users/<owner>/projectsV2/<n>` or `orgs/<owner>/projectsV2/<n>`, with `/fields` and `/items`). `gh issue`, `gh pr`, `gh project`, and `gh api graphql` use GraphQL, whose hourly limit agents share with Actions tokens. Use GraphQL only when REST lacks the operation, such as reading a PR's closing issues, and switch to REST when it is rate-limited. The board workflows and `npx agenticool-board` keep their GraphQL calls, even when you run them.
 
 <!-- agenticool-agents sync: end delivery -->
 
@@ -41,21 +41,21 @@ While editing, run only the focused tests for what you touched. Before the first
 
 ## Repository agent workflows
 
-Version-controlled agents and skills under `.claude/agents/` and `.claude/skills/` (Claude Code) and `.codex/agents/` and `.agents/skills/` (Codex) encapsulate Agenticool delivery. Every identifier starts with `agenticool-`, and routing always names the `agenticool-` definition. Both tools get the same roles, handoffs, and checks; only the packaging differs. The definitions are generated from the shared sources in `@agenticool/agents`, the repository's own sources under `.agents/local/`, and `.agents/policy.json`: edit a local source or the policy, run `npx agenticool-agents generate`, and commit the output, or ask `agenticool-agents` to do all three. The `@agenticool/agents` README has the parity matrix, trust and discovery requirements, known runtime limits, and how to check effective settings.
+Version-controlled agents and skills under `.claude/agents/` and `.claude/skills/` (Claude Code) and `.codex/agents/` and `.agents/skills/` (Codex) encapsulate Agenticool delivery. Routing always names these definitions. Both tools get the same roles, handoffs, and checks; only the packaging differs. The definitions are generated from the shared sources in `@agenticool/agents`, the repository's own sources under `.agents/local/`, and `.agents/policy.json`: edit a local source or the policy, run `npx agenticool-agents generate`, and commit the output, or ask the `agents` skill to do all three. The `@agenticool/agents` README has the parity matrix, trust and discovery requirements, known runtime limits, and how to check effective settings.
 
 | Request | Claude Code | Codex | Role it dispatches |
 | --- | --- | --- | --- |
-| `implement #N`, an issue URL, or a PR URL | `/agenticool-implement` | `$agenticool-implement` | `agenticool-implementer` per leaf or rework (`inline` keeps a small one here); `agenticool-code-reviewer` for the pre-PR gate |
-| Build, link, rebase, or sync stacked branches during delivery | `/agenticool-stack` | `$agenticool-stack` | none; the agent that created the worktree runs it |
-| File or draft issues | `/agenticool-create-github-issue` | `$agenticool-create-github-issue` | none by default; `agenticool-issue-triager` (read-only) when a batch needs independent judgment |
-| File a specification's delivery plan as a root container, epics, and leaves | `/agenticool-spec-to-issues` | `$agenticool-spec-to-issues` | `agenticool-issue-triager` (read-only) for independence groups only |
-| Review a pushed branch or PR | `/agenticool-review-code` | `$agenticool-review-code` | `agenticool-code-reviewer` (read-only, reports to you; the skill posts the report to a target PR) |
-| Security review, only when a person asks | `/agenticool-review-security` | `$agenticool-review-security` | `agenticool-security-reviewer` (read-only) |
-| Write a PR body, issue body, comment, or doc | `/agenticool-plain-language` | `$agenticool-plain-language` | none |
-| Change, add, or regenerate these agents and skills | `/agenticool-agents` | `$agenticool-agents` | none; edits the policy or local sources, regenerates both tools, verifies |
+| `implement #N`, an issue URL, or a PR URL | `/implement` | `$implement` | `implementer` per leaf or rework (`inline` keeps a small one here); `code-reviewer` for the pre-PR gate |
+| Build, link, rebase, or sync stacked branches during delivery | `/stack` | `$stack` | none; the agent that created the worktree runs it |
+| File or draft issues | `/create-github-issue` | `$create-github-issue` | none by default; `issue-triager` (read-only) when a batch needs independent judgment |
+| File a specification's delivery plan as a root container, epics, and leaves | `/spec-to-issues` | `$spec-to-issues` | `issue-triager` (read-only) for independence groups only |
+| Review a pushed branch or PR | `/review-code` | `$review-code` | `code-reviewer` (read-only, reports to you; the skill posts the report to a target PR) |
+| Security review, only when a person asks | `/review-security` | `$review-security` | `security-reviewer` (read-only) |
+| Write a PR body, issue body, comment, or doc | `/plain-language` | `$plain-language` | none |
+| Change, add, or regenerate these agents and skills | `/agents` | `$agents` | none; edits the policy or local sources, regenerates both tools, verifies |
 
-- Delivery and handoffs: [the implement workflow](.agents/skills/agenticool-implement/SKILL.md) owns dispatch, its [dependency queue](.agents/skills/agenticool-implement/references/queue.md) owns containers and the parallel exception, and [leaf delivery](.agents/skills/agenticool-implement/references/delivery.md) owns the pre-PR reviewer spawn. Only `agenticool-issue-triager` forms independence groups, under `.agents/independence-groups.md`. No automatic flow spawns `agenticool-security-reviewer`.
-- Model and effort: `.agents/policy.json` names the model and effort for each role, per tool, and owns the implementation effort rubric. Every dispatcher runs `npx agenticool-agents resolve --tool <claude|codex> --role <role>` and passes the result explicitly when it spawns; it never inherits a session or contributor default. An explicit `model <name>` or `effort <level>` in the request overrides only that setting, for that task and the handoffs it names (`reviewer effort max`), and changes nothing on disk; unsupported values fail. Each agent labels the dispatched `Policy:` line `Requested settings:`, including overrides, and omits model self-identification and runtime-verification commentary. `CLAUDE_CODE_EFFORT_LEVEL` and Codex agent file fields can silently override requested settings.
+- Delivery and handoffs: [the implement workflow](.agents/skills/implement/SKILL.md) owns dispatch, its [dependency queue](.agents/skills/implement/references/queue.md) owns containers and the parallel exception, and [leaf delivery](.agents/skills/implement/references/delivery.md) owns the pre-PR reviewer spawn. Only `issue-triager` forms independence groups, under `.agents/independence-groups.md`. No automatic flow spawns `security-reviewer`.
+- Model and effort: the packages ship the model and effort for each role, per tool, and the implementation effort rubric, and `.agents/policy.json` may override them. Every dispatcher runs `npx agenticool-agents resolve --tool <claude|codex> --role <role>` and passes the result explicitly when it spawns; it never inherits a session or contributor default. An explicit `model <name>` or `effort <level>` in the request overrides only that setting, for that task and the handoffs it names (`reviewer effort max`), and changes nothing on disk; unsupported values fail. Each agent labels the dispatched `Policy:` line `Requested settings:`, including overrides, and omits model self-identification and runtime-verification commentary. `CLAUDE_CODE_EFFORT_LEVEL` and Codex agent file fields can silently override requested settings.
 
 <!-- agenticool-agents sync: end workflows -->
 
@@ -63,13 +63,13 @@ Version-controlled agents and skills under `.claude/agents/` and `.claude/skills
 
 ## Delivery binding
 
-Issue tracker: GitHub Issues. This marker turns on the GitHub issue flows (`implement #N`, GitHub issue filing), which run through the `agenticool-` skills and agents.
+Issue tracker: GitHub Issues. This marker turns on the GitHub issue flows (`implement #N`, GitHub issue filing), which run through the skills and agents in Repository agent workflows.
 
 Repo `agenticool/agenticool`, trunk `main`, project [Agenticool delivery](https://github.com/orgs/agenticool/projects/1).
 
 - PR titles use Conventional Commits with a component scope, e.g. `fix(<component>): ...`. Body: `Closes #N`, plus `Parent issue or epic: #P` when one exists.
-- Issue states: an agent sets only `In progress`, when it claims the issue before coding, as [leaf delivery](.agents/skills/agenticool-implement/references/delivery.md#claim) describes. `tracker-pr-issue-status.yml` moves the closing issue to `In review` when the PR opens. Tracker automation moves a closed issue to `Done` and a reopened issue in `Done` back to `Ready`. An agent never sets `In review` or `Done`.
-- Every request needs an issue before work starts. Search for an existing one first; if none exists, file it with `agenticool-create-github-issue` (`$agenticool-create-github-issue` in Codex), then claim it and do the work.
+- Issue states: an agent sets only `In progress`, when it claims the issue before coding, as [leaf delivery](.agents/skills/implement/references/delivery.md#claim) describes. `board-pr-issue-status.yml` moves the closing issue to `In review` when the PR opens. Board automation moves a closed issue to `Done` and a reopened issue in `Done` back to `Ready`. An agent never sets `In review` or `Done`.
+- Every request needs an issue before work starts. Search for an existing one first; if none exists, file it with `create-github-issue` (`$create-github-issue` in Codex), then claim it and do the work.
 - Issue titles follow `ISSUE_TRIAGE.md`. For issue filing, follow `.agents/issue-creation.md`.
 
 <!-- agenticool-agents sync: end binding -->
@@ -84,14 +84,14 @@ Every branch an agent pushes for an issue is named `agent/<issue>-<slug>`. When 
 - `<slug>` is that issue's title in lowercase, with accents dropped and every run of other characters turned into `-`. "Part N" in the title becomes `partN`. The slug is cut to 40 characters at a word boundary, and is `issue` when the title has no ASCII letters or digits.
 - Examples: `agent/5-generate-and-enforce-branch-names-from` for #5, and `agent/5-generate-and-enforce-branch-names-from-part-2` for its second stacked layer.
 
-For issue work, never type a branch name by hand. Print it with `npx agenticool-delivery branch-name <issue>`, adding `--layer <n>` for layer 2 and up. Create the branch with that name, or run `git branch -m <name>` when your tool created the worktree branch under another name. Do this before the first commit. Once a branch is pushed, keep its name, even if the issue title changes later. Nothing in CI checks branch names, so following this rule is up to you.
+For issue work, never type a branch name by hand. Print it with `npx agenticool-dispatch branch-name <issue>`, adding `--layer <n>` for layer 2 and up. Create the branch with that name, or run `git branch -m <name>` when your tool created the worktree branch under another name. Do this before the first commit. Once a branch is pushed, keep its name, even if the issue title changes later. Nothing in CI checks branch names, so following this rule is up to you.
 
 <!-- agenticool-agents sync: end branches -->
 
 ## GitHub Actions workflow names
 
-- Workflow files are named `<area>-<purpose>.yml` in lowercase kebab-case, and each workflow's `name` starts with the area's prefix and `: `, as in `tracker-issue-states.yml`, named `Tracker: reconcile issue states`. `CONFIG.areas` in `scripts/workflow-lint.mjs` maps each area to its prefix; add an area there before you use it.
-- A reusable workflow, one that runs on `workflow_call`, has a file name that starts with `_` and a `name` that ends in ` (reusable)`, as in `_tracker-issue-states.yml`, named `Tracker: reconcile issue states (reusable)`. A workflow that runs only on `workflow_call` must follow this rule; no workflow without `workflow_call` starts with `_` or ends its name with ` (reusable)`.
+- Workflow files are named `<area>-<purpose>.yml` in lowercase kebab-case, and each workflow's `name` starts with the area's prefix and `: `, as in `board-issue-states.yml`, named `Board: reconcile issue states`. `CONFIG.areas` in `scripts/workflow-lint.mjs` maps each area to its prefix; add an area there before you use it.
+- A reusable workflow, one that runs on `workflow_call`, has a file name that starts with `_` and a `name` that ends in ` (reusable)`, as in `_board-issue-states.yml`, named `Board: reconcile issue states (reusable)`. A workflow that runs only on `workflow_call` must follow this rule; no workflow without `workflow_call` starts with `_` or ends its name with ` (reusable)`.
 - Job IDs are kebab-case. Every job and every step has a name that says what it does and starts with a capital letter; a job name may start with an expression instead.
 - A workflow that `pull_request`, `push`, or `workflow_call` does not start sets a `run-name` with an expression that names its subject. A `workflow_run` trigger names an existing workflow by its `name`.
 - `npm run workflows:lint` checks these rules, with job timeouts, checkout credentials, the Node version source, and `pull_request_target` safety.

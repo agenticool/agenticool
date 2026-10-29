@@ -1,0 +1,38 @@
+{
+  "name": "@agenticool/spec",
+  "version": "0.0.0",
+  "description": "Parse a specification written to the spec-slicing format, check its pre-flight rules, render every issue body offline, and file the confirmed plan as linked GitHub issues with resumable state.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src",
+    "bin",
+    "spec-slicing.md",
+    "body-shapes.md",
+    "state-file.md",
+    "github-operations.md",
+    "fixtures"
+  ],
+  "bin": {
+    "agenticool-spec": "bin/agenticool-spec.mjs"
+  },
+  "engines": {
+    "node": ">=24.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticool/agenticool.git",
+    "directory": "packages/spec"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@agenticool/board": "^0.0.0",
+    "@agenticool/core": "^0.0.0"
+  }
+}

@@ -9,9 +9,9 @@ import { lintWorkflows } from '../../scripts/workflow-lint/lint.mjs';
 export const CLEAN = fileURLToPath(new URL('fixtures/clean', import.meta.url));
 /** @type {import('../../scripts/workflow-lint/workflows.mjs').Config} */
 export const CONFIG = {
-  areas: { ci: 'CI', release: 'Release', tracker: 'Tracker' },
+  areas: { ci: 'CI', release: 'Release', board: 'Board' },
   exclude: ['vendor.yml'],
-  pullRequestTarget: ['tracker-pr-metadata.yml'],
+  pullRequestTarget: ['board-pr-metadata.yml'],
   requiredChecks: [
     { file: 'ci-checks.yml', job: 'run-checks', name: 'Run checks' },
     {

@@ -5,7 +5,7 @@ argument-hint: "<build|adopt|link|cascade|sync> [branches | PR URLs]"
 codex:
   display_name: "{{label}}: Stack"
   short_description: "Build, link, rebase, and sync stacked {{label}} branches safely"
-  default_prompt: "Use ${{prefix}}stack to manage the stacked branches for this {{label}} delivery."
+  default_prompt: "Use $stack to manage the stacked branches for this {{label}} delivery."
 ---
 # {{label}} stack
 
@@ -18,7 +18,7 @@ Authority: the delivery request covers building your own branches, pushing them,
 Every operation here needs the `gh stack` extension (`github/gh-stack`), because each one starts with `gh stack view` and build, adopt, and link run `gh stack` commands. Before you build, adopt, link, cascade, or sync, run `gh stack --help >/dev/null`. A zero exit means the extension is installed; run the check once per delivery. A non-zero exit means it is missing, and you change nothing:
 
 - In the main thread, stop and ask the person to run `! gh extension install github/gh-stack`. Installing an extension changes their workstation, so never run the install yourself. When they confirm, run the check again and continue only when it passes.
-- An isolated {{prefix}}implementer returns `BLOCKED: gh stack not installed` with the output of `gh --version`. It keeps its claim, branch, and worktree, so the dispatcher can continue the same implementer after the install.
+- An isolated implementer returns `BLOCKED: gh stack not installed` with the output of `gh --version`. It keeps its claim, branch, and worktree, so the dispatcher can continue the same implementer after the install.
 
 ## Inspect before every mutation
 
@@ -29,8 +29,8 @@ Every operation here needs the `gh stack` extension (`github/gh-stack`), because
 
 You own a branch in two cases, and only while it is checked out in your worktree or in none:
 
-- You created it for this delivery, with a name from `npx agenticool-delivery branch-name`.
-- It comes from an earlier delivery that you are reworking or resuming: `npx agenticool-delivery branch-name` named it for this issue, it is the head branch of the target PR or of the claim you resume, and you verified its remote head before your first mutation. That verified head is the expected SHA for your first push.
+- You created it for this delivery, with a name from `npx agenticool-dispatch branch-name`.
+- It comes from an earlier delivery that you are reworking or resuming: `npx agenticool-dispatch branch-name` named it for this issue, it is the head branch of the target PR or of the claim you resume, and you verified its remote head before your first mutation. That verified head is the expected SHA for your first push.
 
 Trunk `main` is never yours; it is usually checked out in the human checkout. Stop and report when any of these holds:
 
@@ -53,7 +53,7 @@ Trunk `main` is never yours; it is usually checked out in the human checkout. St
 
 A rebase, cascade, or push never moves a branch that another worktree has checked out: [Inspect before every mutation](#inspect-before-every-mutation) stops it first.
 
-- Build: layer 1 is the branch the delivery procedure's worktree step created on the base SHA. Create each later layer on the one below it, bottom to top, with `git switch -c <layer n> <layer n-1>` and names from `npx agenticool-delivery branch-name <issue> --layer <n>`. Track them with `gh stack init --base main <layer 1> <layer 2> ...`. Create and verify the branches first: `init` adopts existing branches and creates missing ones, so a typo becomes a new branch. To grow a stack that is already tracked, switch to its top layer and run `gh stack add <layer n>` with a name that does not exist yet; it creates that branch on the top layer.{{#infrastructure}} Never add a layer that changes infrastructure the repository applies only from pull requests targeting `main` (Terrateam), unless no layer needs the apply before that layer is retargeted to `main`.{{/infrastructure}}
+- Build: layer 1 is the branch the delivery procedure's worktree step created on the base SHA. Create each later layer on the one below it, bottom to top, with `git switch -c <layer n> <layer n-1>` and names from `npx agenticool-dispatch branch-name <issue> --layer <n>`. Track them with `gh stack init --base main <layer 1> <layer 2> ...`. Create and verify the branches first: `init` adopts existing branches and creates missing ones, so a typo becomes a new branch. To grow a stack that is already tracked, switch to its top layer and run `gh stack add <layer n>` with a name that does not exist yet; it creates that branch on the top layer.{{#infrastructure}} Never add a layer that changes infrastructure the repository applies only from pull requests targeting `main` (Terrateam), unless no layer needs the apply before that layer is retargeted to `main`.{{/infrastructure}}
 - Adopt: for branches you already own, verify names and ancestry, then `gh stack init --base main <branches bottom to top>`.
 - Prerequisite: to build on another issue's unmerged PR, which the delivery gate must allow, base layer 1 on that PR's pushed head SHA and record the SHA. Never adopt, rebase, or push the prerequisite's branch; it belongs to another owner. Link its PR by URL instead.
 - Link: after the PRs exist, run `gh stack link --base main <PR URL> ...` bottom to top, prerequisite PRs first, with PR URLs only.

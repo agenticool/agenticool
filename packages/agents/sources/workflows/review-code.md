@@ -1,15 +1,15 @@
 ---
 name: review-code
-description: "Independent code review of one {{label}} pull request or pushed branch at exact base/head SHAs, run by the read-only {{prefix}}code-reviewer at the repository policy or an explicit override. The target is always a PR (#N, a bare number, or a PR URL) or a branch, never an issue; the PR's linked issues only supply acceptance criteria. Use for \"review #N\" (PR #N), \"review <PR URL>\", or \"review branch <name>\" in {{repository}}. Reports findings to you and posts them to an open PR as one review: a change request only for a REQUEST CHANGES verdict from a GitHub account other than the PR author, otherwise a comment. Never edits or approves."
+description: "Independent code review of one {{label}} pull request or pushed branch at exact base/head SHAs, run by the read-only code-reviewer at the repository policy or an explicit override. The target is always a PR (#N, a bare number, or a PR URL) or a branch, never an issue; the PR's linked issues only supply acceptance criteria. Use for \"review #N\" (PR #N), \"review <PR URL>\", or \"review branch <name>\" in {{repository}}. Reports findings to you and posts them to an open PR as one review: a change request only for a REQUEST CHANGES verdict from a GitHub account other than the PR author, otherwise a comment. Never edits or approves."
 argument-hint: "<#N or PR number | PR URL | branch> [model <name>] [effort <level>]"
 codex:
   display_name: "{{label}}: Review code"
   short_description: "Independent review of one {{label}} pull request or branch, posted to the PR"
-  default_prompt: "Use ${{prefix}}review-code to review this {{label}} pull request or branch."
+  default_prompt: "Use $review-code to review this {{label}} pull request or branch."
 ---
 # {{label}} review code
 
-You gather the inputs and dispatch `{{prefix}}code-reviewer`; you do not review the diff yourself. The reviewer stays read-only. Your only GitHub write is the one review that [Publish](#publish) posts to an open target pull request after the reviewer returns. A branch review, or a review of a merged or closed pull request, writes nothing.
+You gather the inputs and dispatch `code-reviewer`; you do not review the diff yourself. The reviewer stays read-only. Your only GitHub write is the one review that [Publish](#publish) posts to an open target pull request after the reviewer returns. A branch review, or a review of a merged or closed pull request, writes nothing.
 
 ## Gather
 
@@ -31,10 +31,10 @@ Run `npx agenticool-agents resolve --tool <tool> --role code-reviewer`, adding `
 Build the factual review packet with `review_mode=requested`, the PR URL for a PR target, the URL of every closing issue, the remote ref (`pull/<N>/head` for a PR, the branch otherwise), `base_fallback` when Gather used it, and the `Policy:` line. {{> review-packet}} Leave out your own opinion of the change.
 
 <!-- claude-only -->
-Use the Agent tool with `subagent_type: {{prefix}}code-reviewer` and the resolver's `model` and `effort` passed explicitly.
+Use the Agent tool with `subagent_type: code-reviewer` and the resolver's `model` and `effort` passed explicitly.
 <!-- /claude-only -->
 <!-- codex-only -->
-Use `spawn_agent` with `agent_type: {{prefix}}code-reviewer`, `model` and `reasoning_effort` from the resolver's `spawn` object, and `fork_turns: "none"`. Always pass both values; the agent file carries neither. An unknown `agent_type` means the project is not trusted in Codex yet; say so and stop.
+Use `spawn_agent` with `agent_type: code-reviewer`, `model` and `reasoning_effort` from the resolver's `spawn` object, and `fork_turns: "none"`. Always pass both values; the agent file carries neither. An unknown `agent_type` means the project is not trusted in Codex yet; say so and stop.
 <!-- /codex-only -->
 
 ## Publish

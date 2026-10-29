@@ -1,12 +1,12 @@
 ---
 name: create-github-issue
-description: Plan and file {{label}} GitHub issues, native sub-issues, and explicitly requested epics using the repository's issue forms, labels, and {{label}} delivery project fields. Classifies inline by default and asks {{prefix}}issue-triager for independent triage when a batch needs independent classification, decomposition, or dependency judgment. Use for create/file/open/draft issue requests in {{repository}}. Does not implement or open PRs.
+description: Plan and file {{label}} GitHub issues, native sub-issues, and explicitly requested epics using the repository's issue forms, labels, and {{label}} delivery project fields. Classifies inline by default and asks issue-triager for independent triage when a batch needs independent classification, decomposition, or dependency judgment. Use for create/file/open/draft issue requests in {{repository}}. Does not implement or open PRs.
 argument-hint: "[what to file] [triager model <name>] [triager effort <level>]"
 capability: issue-creation
 codex:
   display_name: "{{label}}: Create GitHub issue"
   short_description: "File typed {{label}} issues, triaged inline or independently"
-  default_prompt: "Use ${{prefix}}create-github-issue to file this as one {{label}} issue."
+  default_prompt: "Use $create-github-issue to file this as one {{label}} issue."
 ---
 # {{label}} create GitHub issues
 
@@ -29,7 +29,7 @@ For a small fix, use the supplied outcome, criteria, and validation directly; no
 
 Classify inline by default: set severity, Priority, Size, labels, and LEAF or CONTAINER for each draft by `{{docs.triage}}`.
 
-Spawn one `{{prefix}}issue-triager` for the batch instead when the filing needs independent judgment:
+Spawn one `issue-triager` for the batch instead when the filing needs independent judgment:
 
 - Classification: the request asks for independent triage, or a draft's severity, Size, or leaf-or-container scope stays uncertain after you read `{{docs.triage}}`.
 - Decomposition: a draft may hold more than one logical outcome, or the batch creates a container or epic.
@@ -40,17 +40,17 @@ A filing with a single leaf and no other dependency judgment still classifies in
 Resolve the triager settings with `npx agenticool-agents resolve --tool <tool> --role issue-triager`, adding `--model` or `--effort` only for a `triager` override in the request. If it exits non-zero, stop and report its message. Send only the drafts (ref, title, body, parent ref, and planned blocked-by refs), accepted decisions, the discovered label and option lists, which reason above applies, and the `Policy:` line (`Policy: tool=<tool> role=issue-triager model=<model> effort=<effort> (model: <source>, effort: <source>)`). Do not send the transcript or your intended verdict. Apply its severity, Priority, Size, labels, `EDGES` line, and independence groups: every returned edge joins the planned blocked-by edges, and each draft's Dependencies section names its blockers. Once you spawn it, never override its verdict with your own. On SPLIT_REQUIRED, split and re-triage only the affected drafts, plus their sibling leaves when the split changes a new container's leaves. There is no second pass otherwise. Only the triager forms independence groups.
 
 <!-- claude-only -->
-Spawn with the Agent tool: `subagent_type: {{prefix}}issue-triager`, passing `model` and `effort` from the resolver explicitly.
+Spawn with the Agent tool: `subagent_type: issue-triager`, passing `model` and `effort` from the resolver explicitly.
 <!-- /claude-only -->
 <!-- codex-only -->
-Spawn with `spawn_agent`: `agent_type: {{prefix}}issue-triager`, `model` and `reasoning_effort` from the resolver's `spawn` object, `fork_turns: "none"`. Always pass both values; the agent file carries neither. An unknown `agent_type` means the project is not trusted in Codex yet; say so and stop.
+Spawn with `spawn_agent`: `agent_type: issue-triager`, `model` and `reasoning_effort` from the resolver's `spawn` object, `fork_turns: "none"`. Always pass both values; the agent file carries neither. An unknown `agent_type` means the project is not trusted in Codex yet; say so and stop.
 <!-- /codex-only -->
 
 ## Publish
 
-"Draft", "suggest", or "plan" means show the drafts and write nothing. "Create", "file", or "open" authorizes publishing the requested issues and necessary sub-issues, nothing more: no implementation, credentials, or tracker configuration. Load the {{prefix}}plain-language skill before writing bodies. Preflight template fields, labels, options, and project access. A missing item is a blocker; do not create configuration as a side effect.
+"Draft", "suggest", or "plan" means show the drafts and write nothing. "Create", "file", or "open" authorizes publishing the requested issues and necessary sub-issues, nothing more: no implementation, credentials, or tracker configuration. Load the plain-language skill before writing bodies. Preflight template fields, labels, options, and project access. A missing item is a blocker; do not create configuration as a side effect.
 
-Order: parents, then children, then native parent links, then blocked-by edges, planned and triager-returned alike (the waiting issue's `dependencies/blocked_by` gets the blocker's `id`; reject cycles), then the independence record in each new container or epic body for which the triager returned groups (read `.agents/independence-groups.md` for the format only when the triager returned groups; leave the rest of the body unchanged), then Priority and Size on each issue's project item (never Status: triage sets it), then the post-create commands (`npx agenticool-tracker triage --apply --issue N` per new issue and `npx agenticool-tracker containers --apply --issue N` per new top-level container, after the batch's relationships are complete). Add each new issue to the project only with `npx agenticool-tracker membership`, never with a direct `POST` to the project's items, and set fields on the item it prints. When the membership workflow already added the issue, the script prints that existing item. If the script fails or prints no item, keep the issue, skip its fields and post-create commands, and report it as unfinished. Milestone and assignee only when requested or required by policy. Record each URL as it succeeds. On an ambiguous failure, search before retrying and repair rather than duplicate. REST mechanics: [references/github-operations.md](references/github-operations.md), read only when needed.
+Order: parents, then children, then native parent links, then blocked-by edges, planned and triager-returned alike (the waiting issue's `dependencies/blocked_by` gets the blocker's `id`; reject cycles), then the independence record in each new container or epic body for which the triager returned groups (read `.agents/independence-groups.md` for the format only when the triager returned groups; leave the rest of the body unchanged), then Priority and Size on each issue's project item (never Status: triage sets it), then the post-create commands (`npx agenticool-board triage --apply --issue N` per new issue and `npx agenticool-board containers --apply --issue N` per new top-level container, after the batch's relationships are complete). Add each new issue to the project only with `npx agenticool-board membership`, never with a direct `POST` to the project's items, and set fields on the item it prints. When the membership workflow already added the issue, the script prints that existing item. If the script fails or prints no item, keep the issue, skip its fields and post-create commands, and report it as unfinished. Milestone and assignee only when requested or required by policy. Record each URL as it succeeds. On an ambiguous failure, search before retrying and repair rather than duplicate. REST mechanics: [references/github-operations.md](references/github-operations.md), read only when needed.
 
 ## Verify and return
 

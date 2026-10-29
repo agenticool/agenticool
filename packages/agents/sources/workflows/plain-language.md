@@ -4,7 +4,7 @@ description: Style rules for text published for OTHER people to read. Load ONLY 
 codex:
   display_name: "{{label}}: Plain language"
   short_description: "Style rules for PR bodies, issue bodies, comments, and docs"
-  default_prompt: "Use ${{prefix}}plain-language before writing this text for other people."
+  default_prompt: "Use $plain-language before writing this text for other people."
 ---
 
 # {{label}} plain language

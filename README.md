@@ -6,14 +6,13 @@ Shared, deterministic workflow tooling for GitHub repositories that use Claude C
 
 | Package | What it does |
 | --- | --- |
-| [`@agenticool/github`](packages/github) | Internal: GitHub REST and GraphQL calls through `gh api` |
-| [`@agenticool/cli`](packages/cli) | Internal: argument parsing for the package commands |
-| [`@agenticool/policy`](packages/policy) | Internal: policy loading, model and effort resolution, effort rubric |
-| [`@agenticool/tracker`](packages/tracker) | Project triage, Done and Inbox, containers, membership, and PR status and metadata |
-| [`@agenticool/delivery`](packages/delivery) | Delivery queue and branch names |
-| [`@agenticool/spec-parser`](packages/spec-parser) | Specification parsing, pre-flight rules, and issue body rendering |
-| [`@agenticool/spec-to-issues`](packages/spec-to-issues) | Filing and resuming a specification plan as linked issues |
-| [`@agenticool/agents`](packages/agents) | Shared agents and skills, the generator, and the review publisher |
+| [`@agenticool/agents`](packages/agents) | Shared agents and skills, the generator, the review publisher, and the repository-file sync |
+| [`@agenticool/spec`](packages/spec) | Specification parsing, pre-flight rules, issue body rendering, and filing and resuming a plan as linked issues (`agenticool-spec`) |
+| [`@agenticool/dispatch`](packages/dispatch) | Delivery queue and branch names (`agenticool-dispatch`) |
+| [`@agenticool/board`](packages/board) | Project triage, Done and Inbox, containers, membership, and PR status and metadata (`agenticool-board`) |
+| [`@agenticool/core`](packages/core) | Internal: GitHub calls through `gh api`, argument parsing, and policy loading with the model, effort, role, and rubric defaults; no stable public API |
+
+A repository's `.agents/policy.json` needs only `binding.project`. Model, effort, role, and rubric defaults ship with the packages, and a repository may override them there. The repository comes from the `origin` remote, and the board workflows read the Projects token from the `AGENTICOOL_PROJECT_TOKEN` secret.
 
 ## Pull request checks
 
