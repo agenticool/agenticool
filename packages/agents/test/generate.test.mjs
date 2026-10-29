@@ -142,7 +142,8 @@ test('placeholder sections keep their content only for a non-empty value', () =>
 test('generated output carries no unresolved placeholder and follows the binding', () => {
   for (const [path, content] of render(FIXTURE)) {
     // The maintainer skill documents the placeholders literally.
-    if (!path.includes(`/agents/`)) assert.doesNotMatch(content, /\{\{/, path);
+    if (!path.includes(`/agent-config/`))
+      assert.doesNotMatch(content, /\{\{/, path);
     if (!/^\.agents\/[^/]+\.md$/.test(path))
       assert.ok(path.includes(`/`), path);
   }
@@ -307,7 +308,7 @@ test('every role and workflow renders for both tools with matching bodies', () =
     assert.ok(names.includes(`.codex/agents/${role}.toml`), role);
   }
   for (const skill of [
-    'agents',
+    'agent-config',
     'implement',
     'create-github-issue',
     'spec-to-issues',

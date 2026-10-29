@@ -86,7 +86,7 @@ The board caller workflows always pass the `AGENTICOOL_PROJECT_TOKEN` secret.
 | `sources/issue-creation.md` | Tool-agnostic issue drafting adapter, read by the issue filing skills; points to the classification and filing owners |
 | `sources/independence-groups.md` | Shared independence group definition and record format, read by the triager and the implement skill, and by the filing skills only when the triager returns groups |
 
-The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `security-reviewer`. The shipped skills are `agents`, `create-github-issue`, `implement`, `plain-language`, `review-code`, `review-security`, `spec-to-issues`, and `stack`.
+The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `security-reviewer`. The shipped skills are `agent-config`, `create-github-issue`, `implement`, `plain-language`, `review-code`, `review-security`, `spec-to-issues`, and `stack`.
 
 ### Source syntax
 
@@ -178,7 +178,7 @@ A skill cannot change the session model in either tool, so inline work runs at w
 | Issue triage (when filing needs it) | `.claude/agents/issue-triager.md` (`Read, Grep, Glob, Bash`) | `.codex/agents/issue-triager.toml` (`:read-only`) | same source |
 | Code review | `code-reviewer` (`Bash, Read, Grep, Glob`, `isolation: worktree`) | `code-reviewer` (`:read-only`) | same source; routing tests |
 | Security review | `security-reviewer` (adds `WebFetch, WebSearch`) | `security-reviewer` (`:read-only`) | same source; routing tests |
-| Entry points | `/implement`, `/stack`, `/review-code`, `/review-security`, `/plain-language`, `/agents` | `$implement`, `$stack`, `$review-code`, `$review-security`, `$plain-language`, `$agents` | same source; manifests generated |
+| Entry points | `/implement`, `/stack`, `/review-code`, `/review-security`, `/plain-language`, `/agent-config` | `$implement`, `$stack`, `$review-code`, `$review-security`, `$plain-language`, `$agent-config` | same source; manifests generated |
 | Policy resolution | `npx agenticool-agents resolve --tool claude ...` | `... --tool codex ...` | `@agenticool/core` tests |
 
 "Same source" means the Claude and Codex files are rendered from one Markdown file; only the tool-only blocks differ (how to spawn, how to load a skill, how the worktree is created, and the Claude reviewer's optional detached checkout). The package tests render every role, workflow, and Markdown reference for both tools against a fixture consumer and require every shared line in both renderings. The routing tests also check behavior: each source names the same agents, skills, and references in both tools; `implement` dispatches a leaf and rework to an implementer by default and runs the read-only queue for containers; the queue stays sequential unless a person asks for parallel delivery; the delivery owner loads `stack` itself; the pre-PR review stays mandatory on its paths; issue filing classifies inline unless it needs independent judgment; and only the four shipped roles resolve and generate, so no generated file names an `orchestrator` or `stack-manager` agent.

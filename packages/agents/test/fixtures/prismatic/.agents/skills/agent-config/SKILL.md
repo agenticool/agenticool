@@ -1,8 +1,8 @@
 ---
-name: agents
+name: agent-config
 description: "Maintain the Prismatic repository agent workflows: change a role's model or effort, edit, add, or remove a repository-only role or skill, update the supported model list, then regenerate, verify, and stage the Claude Code and Codex output. Use for 'regenerate the agents', 'change the implementer model', 'add an agent role', or any edit under .agents/, .claude/agents, .claude/skills, or .codex/agents in samlevin/prismatic."
 ---
-<!-- Generated from @agenticool/agents/sources/workflows/agents.md by agenticool-agents. Edit the source and run `npx agenticool-agents generate`. -->
+<!-- Generated from @agenticool/agents/sources/workflows/agent-config.md by agenticool-agents. Edit the source and run `npx agenticool-agents generate`. -->
 
 # Prismatic maintain agents
 

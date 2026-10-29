@@ -1,13 +1,11 @@
 ---
-name: agents
-description: "Maintain the {{label}} repository agent workflows: change a role's model or effort, edit, add, or remove a repository-only role or skill, update the supported model list, then regenerate, verify, and stage the Claude Code and Codex output. Use for 'regenerate the agents', 'change the implementer model', 'add an agent role', or any edit under .agents/, .claude/agents, .claude/skills, or .codex/agents in {{repository}}."
+name: agent-config
+description: "Maintain the Agenticool repository agent workflows: change a role's model or effort, edit, add, or remove a repository-only role or skill, update the supported model list, then regenerate, verify, and stage the Claude Code and Codex output. Use for 'regenerate the agents', 'change the implementer model', 'add an agent role', or any edit under .agents/, .claude/agents, .claude/skills, or .codex/agents in agenticool/agenticool."
 argument-hint: "[what to change, or 'regenerate']"
-codex:
-  display_name: "{{label}}: Maintain agents"
-  short_description: "Edit the agent policy or local sources, regenerate, verify, stage"
-  default_prompt: "Use $agents to apply this change to the repository agent workflows."
 ---
-# {{label}} maintain agents
+<!-- Generated from @agenticool/agents/sources/workflows/agent-config.md by agenticool-agents. Edit the source and run `npx agenticool-agents generate`. -->
+
+# Agenticool maintain agents
 
 Read and follow `.agents/worktree-isolation.md` before using a worktree.
 
@@ -29,7 +27,7 @@ The shared roles, skills, references, and rules come from the `@agenticool/agent
 
 A local source with the name of a shared one fails generation.
 
-Local sources never name the repository. Write `\{{label}}`, `\{{repository}}`, `\{{project.owner}}`, `\{{project.number}}`, `\{{project.name}}`, `\{{project.url}}`, `\{{project.restPath}}`, `\{{docs.triage}}`, `\{{docs.workflow}}`, `\{{docs.guides}}`, or `\{{infrastructure.accountChecks}}` and the generator fills them from `binding`; an unknown placeholder fails generation. Wrap text that applies only when a feature flag is on in `\{{#infrastructure}}` ... `\{{/infrastructure}}`, and text that needs a non-empty value, such as a list, in a section named after its placeholder, such as `\{{#infrastructure.accountChecks}}` ... `\{{/infrastructure.accountChecks}}`; sections may nest. To show a placeholder literally, as this paragraph does, write `\\{{` in the source. Text that applies to one tool goes in a `<!-- claude-only -->` ... `<!-- /claude-only -->` or `<!-- codex-only -->` ... `<!-- /codex-only -->` block; everything else is shared and must read correctly in both tools. Do not add `model` or `model_reasoning_effort` to a Codex agent; the policy is applied at spawn time on purpose. Generated names carry no repository prefix: a source's `name` is the agent or skill name. Role and skill text describes how the workflow runs, not how it changed; put the history in the PR.
+Local sources never name the repository. Write `{{label}}`, `{{repository}}`, `{{project.owner}}`, `{{project.number}}`, `{{project.name}}`, `{{project.url}}`, `{{project.restPath}}`, `{{docs.triage}}`, `{{docs.workflow}}`, `{{docs.guides}}`, or `{{infrastructure.accountChecks}}` and the generator fills them from `binding`; an unknown placeholder fails generation. Wrap text that applies only when a feature flag is on in `{{#infrastructure}}` ... `{{/infrastructure}}`, and text that needs a non-empty value, such as a list, in a section named after its placeholder, such as `{{#infrastructure.accountChecks}}` ... `{{/infrastructure.accountChecks}}`; sections may nest. To show a placeholder literally, as this paragraph does, write `\{{` in the source. Text that applies to one tool goes in a `<!-- claude-only -->` ... `<!-- /claude-only -->` or `<!-- codex-only -->` ... `<!-- /codex-only -->` block; everything else is shared and must read correctly in both tools. Do not add `model` or `model_reasoning_effort` to a Codex agent; the policy is applied at spawn time on purpose. Generated names carry no repository prefix: a source's `name` is the agent or skill name. Role and skill text describes how the workflow runs, not how it changed; put the history in the PR.
 
 Before adding a Codex model to `supported`, confirm it exists in `codex debug models`. Before adding a Claude model, confirm it is one of the documented aliases or a `claude-*` ID.
 
@@ -48,4 +46,4 @@ npm run format:check
 
 ## Stage and report
 
-Stage the policy, the local sources, the generated output, and the synced files together (`git add .agents .claude .codex .github AGENTS.md .gitignore {{docs.triage}}`, plus `.mcp.json` with `browserMcp`; stage every path `sync` printed); a commit with one and not the other fails `npx agenticool-agents check` in CI. Report the policy keys and local sources you changed, the generated files that changed (`git status --short .claude .codex .agents/skills`), and the check results. Leave committing, pushing, and PRs to the flow you are already in.
+Stage the policy, the local sources, the generated output, and the synced files together (`git add .agents .claude .codex .github AGENTS.md .gitignore ISSUE_TRIAGE.md`, plus `.mcp.json` with `browserMcp`; stage every path `sync` printed); a commit with one and not the other fails `npx agenticool-agents check` in CI. Report the policy keys and local sources you changed, the generated files that changed (`git status --short .claude .codex .agents/skills`), and the check results. Leave committing, pushing, and PRs to the flow you are already in.
