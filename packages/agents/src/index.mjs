@@ -10,6 +10,7 @@ export {
   SOURCES,
   substitute,
 } from './generate.mjs';
+export { DEFAULTS, withDefaults } from './defaults.mjs';
 export { main } from './main.mjs';
 export {
   parseReviewReport,

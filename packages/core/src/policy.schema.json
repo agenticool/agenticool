@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent workflow policy (.agents/policy.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "description": { "type": "string" },
+    "binding": {
+      "description": "Repository facts every agent source and script reads. The repository itself comes from the origin remote.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "description": "Display name of the repository; defaults to the repository name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "project": {
+          "description": "The GitHub Projects v2 board that tracks delivery.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["owner", "number", "name"],
+          "properties": {
+            "owner": { "type": "string", "minLength": 1 },
+            "ownerType": {
+              "description": "Whether the project owner is a user or an organization.",
+              "enum": ["user", "organization"],
+              "default": "user"
+            },
+            "number": { "type": "integer", "minimum": 1 },
+            "name": { "type": "string", "minLength": 1 }
+          }
+        },
+        "docs": {
+          "description": "Board documents the agent sources name.",
+          "type": "object",
+          "additionalProperties": false,
+          "default": {},
+          "properties": {
+            "triage": {
+              "type": "string",
+              "minLength": 1,
+              "default": "ISSUE_TRIAGE.md"
+            },
+            "workflow": {
+              "type": "string",
+              "minLength": 1,
+              "default": "AGENTS.md"
+            },
+            "guides": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 },
+              "default": ["AGENTS.md"]
+            }
+          }
+        },
+        "infrastructure": {
+          "description": "Read only with the infrastructure feature.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "accountChecks": {
+              "description": "Files that hold the cloud account checks the security reviewer inspects.",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "features": {
+          "type": "object",
+          "additionalProperties": false,
+          "default": {},
+          "properties": {
+            "infrastructure": { "type": "boolean", "default": false },
+            "releasePlease": {
+              "description": "Release pull requests get package labels.",
+              "type": "boolean",
+              "default": false
+            },
+            "browserMcp": {
+              "description": "Sync writes project MCP configuration for browser tools.",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "description": "Model and effort per capability; merged by name over the defaults @agenticool/agents ships.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claude", "codex"],
+        "properties": {
+          "summary": { "type": "string" },
+          "claude": { "$ref": "#/$defs/setting" },
+          "codex": { "$ref": "#/$defs/setting" }
+        }
+      }
+    },
+    "roles": {
+      "description": "Role name to the capability whose settings it uses; merged by name over the shipped defaults.",
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "supported": {
+      "description": "Models and efforts each tool accepts; merged by tool over the shipped defaults.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claude": { "$ref": "#/$defs/support" },
+        "codex": { "$ref": "#/$defs/support" }
+      }
+    },
+    "implementationEffort": {
+      "description": "The implementation effort rubric; replaces the shipped default.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default",
+        "automaticMaximum",
+        "maximumTransitions",
+        "rules"
+      ],
+      "properties": {
+        "default": { "type": "string", "minLength": 1 },
+        "automaticMaximum": { "type": "string", "minLength": 1 },
+        "maximumTransitions": { "type": "integer", "minimum": 0 },
+        "assessmentOrder": { "$ref": "#/$defs/strings" },
+        "blockers": { "$ref": "#/$defs/strings" },
+        "nonTriggers": { "$ref": "#/$defs/strings" },
+        "rules": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["description", "requires"],
+            "properties": {
+              "description": { "type": "string" },
+              "requires": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extra": {
+          "description": "Repository-only labels merged over the base catalog.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "color", "description"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "color": { "type": "string", "pattern": "^[0-9a-fA-F]{6}$" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "setting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "effort"],
+      "properties": {
+        "model": { "type": "string", "minLength": 1 },
+        "effort": { "type": "string", "minLength": 1 }
+      }
+    },
+    "support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["models"],
+      "properties": {
+        "description": { "type": "string" },
+        "modelIdPattern": { "type": "string", "minLength": 1 },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "strings": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

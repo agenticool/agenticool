@@ -1,0 +1,33 @@
+{
+  "name": "@agenticool/dispatch",
+  "version": "0.0.0",
+  "description": "Read the delivery queue for an issue tree (order, claims, effort, independence groups, stacking) and print canonical branch names.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "bin": {
+    "agenticool-dispatch": "./bin/agenticool-dispatch.mjs"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=24.2"
+  },
+  "dependencies": {
+    "@agenticool/agents": "^0.0.0",
+    "@agenticool/core": "^0.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticool/agenticool.git",
+    "directory": "packages/dispatch"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

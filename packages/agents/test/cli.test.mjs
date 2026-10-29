@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { CliError, CliHelp } from '@agenticool/cli';
+import { CliError, CliHelp } from '@agenticool/core';
 import { main } from '@agenticool/agents';
-import { consumer, FIXTURE, policy, PREFIX } from './helpers.mjs';
+import { consumer, FIXTURE, policy } from './helpers.mjs';
 
 const BIN = fileURLToPath(
   new URL('../bin/agenticool-agents.mjs', import.meta.url),
@@ -107,7 +107,7 @@ test('resolve prints the role policy as JSON', () => {
   assert.equal(resolved.model, policy.capabilities['code-review'].codex.model);
   assert.equal(resolved.effort, 'xhigh');
   assert.deepEqual(resolved.source, { model: 'policy', effort: 'override' });
-  assert.equal(resolved.spawn.agent_type, `${PREFIX}code-reviewer`);
+  assert.equal(resolved.spawn.agent_type, `code-reviewer`);
   const capability = JSON.parse(
     capture(['resolve', '--tool', 'claude', '--capability', 'issue-creation'])
       .stdout,
@@ -116,10 +116,7 @@ test('resolve prints the role policy as JSON', () => {
 });
 
 test('generate, sync, and check work in the consumer repository', () => {
-  const base = consumer({
-    ...policy,
-    binding: { ...policy.binding, tokenEnv: 'PROJECT_TOKEN' },
-  });
+  const base = consumer(policy);
   const stale = capture(['check'], base);
   assert.equal(stale.status, 1);
   assert.match(
@@ -129,9 +126,7 @@ test('generate, sync, and check work in the consumer repository', () => {
   const generated = capture(['generate'], base);
   assert.equal(generated.status, 0);
   assert.ok(
-    generated.stdout
-      .split('\n')
-      .includes(`.claude/agents/${PREFIX}implementer.md`),
+    generated.stdout.split('\n').includes(`.claude/agents/implementer.md`),
   );
   assert.equal(capture(['check'], base).status, 1);
   assert.equal(capture(['sync'], base).status, 0);

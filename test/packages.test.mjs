@@ -21,6 +21,16 @@ test('every package publishes publicly with provenance under @agenticool', () =>
   }
 });
 
+test('the packages are agents, board, core, dispatch, and spec', () => {
+  assert.deepEqual([...names].sort(), [
+    'agents',
+    'board',
+    'core',
+    'dispatch',
+    'spec',
+  ]);
+});
+
 test('release-please releases every package as its own component', () => {
   assert.deepEqual(
     Object.keys(config.packages).sort(),

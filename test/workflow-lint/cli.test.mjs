@@ -51,14 +51,14 @@ test("this repository's workflows pass every rule", () => {
   assert.deepEqual(run(ROOT), { code: 0, stdout: '', stderr: '' });
 });
 
-test('only the _tracker-* workflows in this repository run on workflow_call', () => {
+test('only the _board-* workflows in this repository run on workflow_call', () => {
   const called = readdirSync(join(ROOT, W)).filter(
     (file) =>
       'workflow_call' in
       (parse(readFileSync(join(ROOT, W, file), 'utf8')).on ?? {}),
   );
   assert.ok(called.length > 0);
-  for (const file of called) assert.match(file, /^_tracker-/, file);
+  for (const file of called) assert.match(file, /^_board-/, file);
 });
 
 test('each violation prints its file, job, and rule, and the exit code is 1', () => {

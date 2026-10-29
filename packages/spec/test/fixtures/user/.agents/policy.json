@@ -1,0 +1,9 @@
+{
+  "binding": {
+    "project": {
+      "owner": "example",
+      "number": 7,
+      "name": "Notes delivery"
+    }
+  }
+}

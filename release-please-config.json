@@ -10,26 +10,17 @@
     }
   ],
   "packages": {
-    "packages/github": {
-      "component": "github"
+    "packages/core": {
+      "component": "core"
     },
-    "packages/cli": {
-      "component": "cli"
+    "packages/board": {
+      "component": "board"
     },
-    "packages/policy": {
-      "component": "policy"
+    "packages/dispatch": {
+      "component": "dispatch"
     },
-    "packages/tracker": {
-      "component": "tracker"
-    },
-    "packages/delivery": {
-      "component": "delivery"
-    },
-    "packages/spec-parser": {
-      "component": "spec-parser"
-    },
-    "packages/spec-to-issues": {
-      "component": "spec-to-issues"
+    "packages/spec": {
+      "component": "spec"
     },
     "packages/agents": {
       "component": "agents"

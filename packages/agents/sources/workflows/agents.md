@@ -5,7 +5,7 @@ argument-hint: "[what to change, or 'regenerate']"
 codex:
   display_name: "{{label}}: Maintain agents"
   short_description: "Edit the agent policy or local sources, regenerate, verify, stage"
-  default_prompt: "Use ${{prefix}}agents to apply this change to the repository agent workflows."
+  default_prompt: "Use $agents to apply this change to the repository agent workflows."
 ---
 # {{label}} maintain agents
 
@@ -19,17 +19,17 @@ The shared roles, skills, references, and rules come from the `@agenticool/agent
 
 | Change | Edit |
 | --- | --- |
-| The repository the workflows bind to: namespace prefix, label, repository, project, tracker documents, feature flags | `.agents/policy.json` (`binding`) |
-| Model or effort for a capability, or which models and efforts a tool accepts | `.agents/policy.json` (`capabilities`, `supported`) |
+| The project the workflows bind to, the display label, board documents, feature flags | `.agents/policy.json` (`binding`); the repository itself comes from the `origin` remote |
+| Model or effort for a capability, or which models and efforts a tool accepts | `.agents/policy.json` (`capabilities`, `supported`), which override the defaults `@agenticool/agents` ships |
 | Which capability a role resolves to | `.agents/policy.json` (`roles`) |
 | A shared role, skill, skill reference, or shared rule (`.agents/evidence.md`, `.agents/review.md`, and the other generated `.agents/*.md` files) | upstream in `@agenticool/agents`; never in this repository |
-| A role only this repository has: its instructions, tools, isolation, color, or Codex permissions | `<local.roles>/<role>.md` (frontmatter `claude:` and `codex:` keys, body shared) and a `roles` entry in `policy.json` mapping it to a capability |
-| A skill only this repository has: its instructions, description, argument hint, or invocation policy | `<local.workflows>/<name>.md`, with its references in `<local.workflows>/<name>/references/*.md` |
+| A role only this repository has: its instructions, tools, isolation, color, or Codex permissions | `.agents/local/roles/<role>.md` (frontmatter `claude:` and `codex:` keys, body shared) and a `roles` entry in `policy.json` mapping it to a capability |
+| A skill only this repository has: its instructions, description, argument hint, or invocation policy | `.agents/local/workflows/<name>.md`, with its references in `.agents/local/workflows/<name>/references/*.md` |
 | Remove a local role or skill | delete the source (and the `roles` entry); `generate` removes the generated output |
 
-`local.roles` and `local.workflows` in `.agents/policy.json` name the local source directories; they default to `.agents/local/roles` and `.agents/local/workflows`. A local source with the name of a shared one fails generation.
+A local source with the name of a shared one fails generation.
 
-Local sources never name the repository. Write `\{{prefix}}`, `\{{label}}`, `\{{repository}}`, `\{{project.owner}}`, `\{{project.number}}`, `\{{project.name}}`, `\{{project.url}}`, `\{{project.restPath}}`, `\{{docs.triage}}`, `\{{docs.workflow}}`, `\{{docs.guides}}`, or `\{{infrastructure.accountChecks}}` and the generator fills them from `binding`; an unknown placeholder fails generation. Wrap text that applies only when a feature flag is on in `\{{#infrastructure}}` ... `\{{/infrastructure}}`, and text that needs a non-empty value, such as a list, in a section named after its placeholder, such as `\{{#infrastructure.accountChecks}}` ... `\{{/infrastructure.accountChecks}}`; sections may nest. To show a placeholder literally, as this paragraph does, write `\\{{` in the source. Text that applies to one tool goes in a `<!-- claude-only -->` ... `<!-- /claude-only -->` or `<!-- codex-only -->` ... `<!-- /codex-only -->` block; everything else is shared and must read correctly in both tools. Do not add `model` or `model_reasoning_effort` to a Codex agent; the policy is applied at spawn time on purpose. Names get the `{{prefix}}` prefix from the generator, so write `name: implementer`, not `name: {{prefix}}implementer`. Role and skill text describes how the workflow runs, not how it changed; put the history in the PR.
+Local sources never name the repository. Write `\{{label}}`, `\{{repository}}`, `\{{project.owner}}`, `\{{project.number}}`, `\{{project.name}}`, `\{{project.url}}`, `\{{project.restPath}}`, `\{{docs.triage}}`, `\{{docs.workflow}}`, `\{{docs.guides}}`, or `\{{infrastructure.accountChecks}}` and the generator fills them from `binding`; an unknown placeholder fails generation. Wrap text that applies only when a feature flag is on in `\{{#infrastructure}}` ... `\{{/infrastructure}}`, and text that needs a non-empty value, such as a list, in a section named after its placeholder, such as `\{{#infrastructure.accountChecks}}` ... `\{{/infrastructure.accountChecks}}`; sections may nest. To show a placeholder literally, as this paragraph does, write `\\{{` in the source. Text that applies to one tool goes in a `<!-- claude-only -->` ... `<!-- /claude-only -->` or `<!-- codex-only -->` ... `<!-- /codex-only -->` block; everything else is shared and must read correctly in both tools. Do not add `model` or `model_reasoning_effort` to a Codex agent; the policy is applied at spawn time on purpose. Generated names carry no repository prefix: a source's `name` is the agent or skill name. Role and skill text describes how the workflow runs, not how it changed; put the history in the PR.
 
 Before adding a Codex model to `supported`, confirm it exists in `codex debug models`. Before adding a Claude model, confirm it is one of the documented aliases or a `claude-*` ID.
 
@@ -44,7 +44,7 @@ npx agenticool-agents check
 npm run format:check
 ```
 
-`generate` renders every shared and local source and prints every file it owns; `sync` rewrites the synced repository files (`AGENTS.md` sections, tracker files, the `.gitignore` block, and with `browserMcp` the `.mcp.json` and `.codex/config.toml` MCP entries) and prints their paths; `check` writes nothing and fails on any generated or synced file that is missing, stale, or hand-edited. If `check` or a test fails after generating, the source or the policy is wrong (a role without a policy entry, an unsupported model or effort in `policy.json`, a mismatched `name`), and its message says which. Fix the local source or the policy and rerun; never patch the output.
+`generate` renders every shared and local source and prints every file it owns; `sync` rewrites the synced repository files (`AGENTS.md` sections, board files, the `.gitignore` block, and with `browserMcp` the `.mcp.json` and `.codex/config.toml` MCP entries) and prints their paths; `check` writes nothing and fails on any generated or synced file that is missing, stale, or hand-edited. If `check` or a test fails after generating, the source or the policy is wrong (a role without a policy entry, an unsupported model or effort in `policy.json`, a mismatched `name`), and its message says which. Fix the local source or the policy and rerun; never patch the output.
 
 ## Stage and report
 

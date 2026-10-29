@@ -7,13 +7,12 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { render, SOURCES } from '@agenticool/agents';
-import { resolve, TOOLS } from '@agenticool/policy';
+import { resolve, TOOLS } from '@agenticool/core';
 import {
   FIXTURE,
   inBoth,
   lineWith,
   policy,
-  PREFIX,
   section,
   sourcePairs,
 } from './helpers.mjs';
@@ -38,8 +37,8 @@ test('caller skills relay the agent result verbatim in both tools', () => {
   const files = rendered;
   for (const skill of ['implement', 'review-code', 'review-security'])
     for (const path of [
-      `.claude/skills/${PREFIX}${skill}/SKILL.md`,
-      `.agents/skills/${PREFIX}${skill}/SKILL.md`,
+      `.claude/skills/${skill}/SKILL.md`,
+      `.agents/skills/${skill}/SKILL.md`,
     ])
       assert.ok(
         lineWith(
@@ -56,8 +55,8 @@ test('every role reports its requested settings in both tools', () => {
   const files = rendered;
   for (const role of Object.keys(policy.roles))
     for (const path of [
-      `.claude/agents/${PREFIX}${role}.md`,
-      `.codex/agents/${PREFIX}${role}.toml`,
+      `.claude/agents/${role}.md`,
+      `.codex/agents/${role}.toml`,
     ])
       assert.ok(
         files.get(path).includes('Requested settings: Policy:'),
@@ -68,17 +67,17 @@ test('every role reports its requested settings in both tools', () => {
 // The leaf delivery procedure that the main thread and an isolated
 // implementer both follow, in each tool's package.
 const DELIVERY = [
-  `.claude/skills/${PREFIX}implement/references/delivery.md`,
-  `.agents/skills/${PREFIX}implement/references/delivery.md`,
+  `.claude/skills/implement/references/delivery.md`,
+  `.agents/skills/implement/references/delivery.md`,
 ];
 const QUEUE = DELIVERY.map((path) => path.replace('delivery.md', 'queue.md'));
 const IMPLEMENT = [
-  `.claude/skills/${PREFIX}implement/SKILL.md`,
-  `.agents/skills/${PREFIX}implement/SKILL.md`,
+  `.claude/skills/implement/SKILL.md`,
+  `.agents/skills/implement/SKILL.md`,
 ];
 const STACK = [
-  `.claude/skills/${PREFIX}stack/SKILL.md`,
-  `.agents/skills/${PREFIX}stack/SKILL.md`,
+  `.claude/skills/stack/SKILL.md`,
+  `.agents/skills/stack/SKILL.md`,
 ];
 
 test('the delivery owner sends the reviewer its own resolved policy line', () => {
@@ -146,15 +145,15 @@ test('removed coordination roles cannot be selected through any entry point', ()
     agents.sort(),
     Object.keys(policy.roles)
       .flatMap((role) => [
-        `.claude/agents/${PREFIX}${role}.md`,
-        `.codex/agents/${PREFIX}${role}.toml`,
+        `.claude/agents/${role}.md`,
+        `.codex/agents/${role}.toml`,
       ])
       .sort(),
   );
   for (const [path, content] of files)
     assert.doesNotMatch(
       content,
-      new RegExp(`${PREFIX}(orchestrator|stack-manager)\\b`),
+      /stack-manager|`orchestrator`|_type: orchestrator/,
       path,
     );
   // The CLI refuses the removed roles as well.
@@ -178,7 +177,7 @@ test('default delivery dispatches isolated implementers and keeps the main threa
         lineWith(
           content,
           `| ${target} |`,
-          `isolated ${PREFIX}implementer`,
+          `isolated implementer`,
           'references/delivery.md',
         ),
         path,
@@ -188,7 +187,7 @@ test('default delivery dispatches isolated implementers and keeps the main threa
       'queue ledger and fixed result fields only',
       'Do not read source or diffs',
       'detailed review reports',
-      'npx agenticool-delivery queue',
+      'npx agenticool-dispatch queue',
       "leaf's ledger line",
       'actual base branch and SHA',
       'Owned by other running leaves:',
@@ -204,7 +203,7 @@ test('default delivery dispatches isolated implementers and keeps the main threa
   const [claude, codex] = IMPLEMENT.map((path) =>
     section(files.get(path), 'Dispatch and continuation'),
   );
-  assert.match(claude, new RegExp(`subagent_type: ${PREFIX}implementer`));
+  assert.match(claude, new RegExp(`subagent_type: implementer`));
   assert.match(claude, /`model` and `effort` explicitly copied/);
   assert.match(
     codex,
@@ -289,7 +288,7 @@ test('a container runs as a dependency queue in the owning thread', () => {
   );
   const creation = rendered.get('.agents/independence-groups.md');
   assert.ok(
-    lineWith(creation, `${PREFIX}implement\` reads only the lines`),
+    lineWith(creation, `implement\` reads only the lines`),
     'independence-groups.md must name the queue as the record reader',
   );
 });
@@ -300,18 +299,18 @@ test('the delivery owner runs stack operations itself through the shared stack s
     assert.ok(
       lineWith(
         section(files.get(path), 'Stack'),
-        `Run every stack operation yourself with the ${PREFIX}stack skill`,
+        `Run every stack operation yourself with the stack skill`,
         'in the worktree you created',
       ),
       path,
     );
   assert.match(
     section(files.get(DELIVERY[0]), 'Stack'),
-    new RegExp(`Skill tool \\(\`${PREFIX}stack\`\\)`),
+    new RegExp(`Skill tool \\(\`stack\`\\)`),
   );
   assert.match(
     section(files.get(DELIVERY[1]), 'Stack'),
-    new RegExp(`\\$${PREFIX}stack`),
+    new RegExp(`\\$stack`),
   );
   for (const path of STACK) {
     const content = files.get(path);
@@ -431,7 +430,7 @@ test('independent review stays a separate fresh-context gate on mandatory paths'
         lineWith(review, 'always required', scope),
         `${path}: ${scope}`,
       );
-    assert.match(review, new RegExp(`fresh ${PREFIX}code-reviewer`));
+    assert.match(review, new RegExp(`fresh code-reviewer`));
     assert.match(review, /Leave out your self-assessment/);
     assert.match(review, /exact base\/head pair/);
     assert.match(review, /After two rejected rounds, return BLOCKED/);
@@ -441,35 +440,35 @@ test('independent review stays a separate fresh-context gate on mandatory paths'
       `${path} must keep requested review separate from pre-PR review`,
     );
     assert.ok(
-      lineWith(files.get(path), /^Never:/, `${PREFIX}security-reviewer`),
+      lineWith(files.get(path), /^Never:/, `security-reviewer`),
       `${path} must never start a security review`,
     );
   }
   assert.match(
-    files.get(`.claude/skills/${PREFIX}review-security/SKILL.md`),
+    files.get(`.claude/skills/review-security/SKILL.md`),
     /^disable-model-invocation: true$/m,
   );
   assert.match(
-    files.get(`.agents/skills/${PREFIX}review-security/agents/openai.yaml`),
+    files.get(`.agents/skills/review-security/agents/openai.yaml`),
     /allow_implicit_invocation: false/,
   );
 });
 
 test('an isolated implementer follows the shared procedure and delegates nothing else', () => {
   const files = rendered;
-  const claude = files.get(`.claude/agents/${PREFIX}implementer.md`);
-  const codex = files.get(`.codex/agents/${PREFIX}implementer.toml`);
+  const claude = files.get(`.claude/agents/implementer.md`);
+  const codex = files.get(`.codex/agents/implementer.toml`);
   assert.match(claude, /^isolation: worktree$/m);
   assert.match(
     claude,
     new RegExp(
-      `git show origin/main:\\.claude/skills/${PREFIX}implement/references/delivery\\.md`,
+      `git show origin/main:\\.claude/skills/implement/references/delivery\\.md`,
     ),
   );
   assert.match(
     codex,
     new RegExp(
-      `git show origin/main:\\.agents/skills/${PREFIX}implement/references/delivery\\.md`,
+      `git show origin/main:\\.agents/skills/implement/references/delivery\\.md`,
     ),
   );
   for (const content of [claude, codex]) {
@@ -484,8 +483,8 @@ test('an isolated implementer follows the shared procedure and delegates nothing
 test('issue filing classifies inline and reserves the triager for independent judgment', () => {
   const files = rendered;
   for (const path of [
-    `.claude/skills/${PREFIX}create-github-issue/SKILL.md`,
-    `.agents/skills/${PREFIX}create-github-issue/SKILL.md`,
+    `.claude/skills/create-github-issue/SKILL.md`,
+    `.agents/skills/create-github-issue/SKILL.md`,
   ]) {
     const triage = section(files.get(path), 'Triage');
     assert.match(triage, /Classify inline by default/);
@@ -517,8 +516,20 @@ test('issue filing classifies inline and reserves the triager for independent ju
     assert.ok(role.includes(rule), rule);
 });
 
-// Routing facts: the namespaced agents and skills a file names and the
-// references it links. Both tools' renderings of one source must agree.
+// Every generated agent and skill name.
+const NAMES = [
+  ...new Set(
+    [...rendered.keys()]
+      .map((path) =>
+        path.match(
+          /^\.(?:claude|codex)\/agents\/([a-z-]+)\.|^\.claude\/skills\/([a-z-]+)\//,
+        ),
+      )
+      .flatMap((match) => (match ? [match[1] ?? match[2]] : [])),
+  ),
+];
+// Routing facts: the agents and skills a file names and the references it
+// links. Both tools' renderings of one source must agree.
 /** @param {string} content */
 function routing(content) {
   return [
@@ -526,7 +537,7 @@ function routing(content) {
       [
         ...content.matchAll(
           new RegExp(
-            `${PREFIX}[a-z]+(?:-[a-z]+)*|references/[a-z-]+\\.md`,
+            `(?<![\\w-])(?:${NAMES.join('|')})(?![\\w-])|references/[a-z-]+\\.md`,
             'g',
           ),
         ),
@@ -568,8 +579,8 @@ test('the README keeps the effective-model verification row', () => {
 test('review publication runs only from a manual PR review', () => {
   const files = rendered;
   for (const path of [
-    `.claude/skills/${PREFIX}review-code/SKILL.md`,
-    `.agents/skills/${PREFIX}review-code/SKILL.md`,
+    `.claude/skills/review-code/SKILL.md`,
+    `.agents/skills/review-code/SKILL.md`,
   ]) {
     const content = files.get(path);
     assert.ok(
@@ -622,8 +633,8 @@ test('review publication runs only from a manual PR review', () => {
     assert.doesNotMatch(content, /nothing in this flow writes to GitHub/, path);
   }
   for (const path of [
-    `.claude/agents/${PREFIX}code-reviewer.md`,
-    `.codex/agents/${PREFIX}code-reviewer.toml`,
+    `.claude/agents/code-reviewer.md`,
+    `.codex/agents/code-reviewer.toml`,
   ]) {
     const content = files.get(path);
     assert.ok(
@@ -639,7 +650,7 @@ test('review publication runs only from a manual PR review', () => {
   for (const path of DELIVERY)
     assert.ok(lineWith(files.get(path), 'review_mode=pre_pr'), path);
   for (const [path, content] of files)
-    if (!path.includes(`/${PREFIX}review-code/`))
+    if (!path.includes(`/review-code/`))
       assert.doesNotMatch(content, /publish-review/, path);
 });
 
@@ -648,10 +659,10 @@ test('review entry points share bounded packets and preserve independent coverag
   const review = rendered.get('.agents/review.md');
   for (const path of [
     ...DELIVERY,
-    `.claude/skills/${PREFIX}review-code/SKILL.md`,
-    `.agents/skills/${PREFIX}review-code/SKILL.md`,
-    `.claude/agents/${PREFIX}code-reviewer.md`,
-    `.codex/agents/${PREFIX}code-reviewer.toml`,
+    `.claude/skills/review-code/SKILL.md`,
+    `.agents/skills/review-code/SKILL.md`,
+    `.claude/agents/code-reviewer.md`,
+    `.codex/agents/code-reviewer.toml`,
   ]) {
     const content = files.get(path);
     assert.ok(content.includes('.agents/review.md'), path);
@@ -717,7 +728,7 @@ test('queue recomputes and main reads only fixed results until a blocker needs a
   for (const path of QUEUE) {
     const content = files.get(path);
     for (const rule of [
-      'npx agenticool-delivery queue',
+      'npx agenticool-dispatch queue',
       'refetches',
       'fixed result fields',
       'Do not read source, diffs, or detailed review reports',
@@ -769,7 +780,7 @@ test('specification filing runs the spec commands and asks the triager for plan-
       assert.doesNotMatch(skill, owned, path);
     assert.match(
       skill,
-      /`node_modules\/@agenticool\/spec-parser\/spec-slicing\.md`/,
+      /`node_modules\/@agenticool\/spec\/spec-slicing\.md`/,
       path,
     );
     const preflight = section(skill, '1. Pre-flight');
@@ -841,26 +852,22 @@ test('specification filing runs the spec commands and asks the triager for plan-
     assert.ok(section(skill, 'Verify and return'), path);
   }
   assert.match(
-    files.get(`.agents/skills/${PREFIX}spec-to-issues/SKILL.md`),
+    files.get(`.agents/skills/spec-to-issues/SKILL.md`),
     new RegExp(
-      `Spawn with \`spawn_agent\`: \`agent_type: ${PREFIX}issue-triager\`[^\\n]*\`fork_turns: "none"\``,
+      `Spawn with \`spawn_agent\`: \`agent_type: issue-triager\`[^\\n]*\`fork_turns: "none"\``,
     ),
   );
   assert.match(
-    files.get(`.claude/skills/${PREFIX}spec-to-issues/SKILL.md`),
-    new RegExp(
-      `Spawn with the Agent tool: \`subagent_type: ${PREFIX}issue-triager\``,
-    ),
+    files.get(`.claude/skills/spec-to-issues/SKILL.md`),
+    new RegExp(`Spawn with the Agent tool: \`subagent_type: issue-triager\``),
   );
   // The package docs are the only copy of the format, state, and REST rules.
   assert.deepEqual(
-    [...files.keys()]
-      .filter((path) => path.includes(`${PREFIX}spec-to-issues/`))
-      .sort(),
+    [...files.keys()].filter((path) => path.includes(`spec-to-issues/`)).sort(),
     [
-      `.agents/skills/${PREFIX}spec-to-issues/SKILL.md`,
-      `.agents/skills/${PREFIX}spec-to-issues/agents/openai.yaml`,
-      `.claude/skills/${PREFIX}spec-to-issues/SKILL.md`,
+      `.agents/skills/spec-to-issues/SKILL.md`,
+      `.agents/skills/spec-to-issues/agents/openai.yaml`,
+      `.claude/skills/spec-to-issues/SKILL.md`,
     ],
   );
 });
@@ -929,11 +936,11 @@ test('every consumer path a generated file names exists in the fixture consumer'
     recursive: true,
     withFileTypes: true,
   })
-    .filter((entry) => entry.isFile())
+    .filter((entry) => entry.isFile() && !entry.parentPath.includes('/.git'))
     .map((entry) =>
       join(entry.parentPath, entry.name).slice(FIXTURE.length + 1),
     );
-  const local = [policy.local.roles, policy.local.workflows];
+  const local = ['.agents/local/roles', '.agents/local/workflows'];
   for (const [path, content] of rendered)
     for (const [named] of content.matchAll(
       /(?<![\w./-])(?:\.agents|scripts)\/[\w.*<>/-]*[\w*>]/g,
@@ -942,7 +949,7 @@ test('every consumer path a generated file names exists in the fixture consumer'
       const stem = named.split(/[*<]/)[0];
       const directory = stem.endsWith('/') ? stem : `${stem}/`;
       assert.ok(
-        local.includes(named) ||
+        local.some((directory) => named.startsWith(directory)) ||
           files.some((file) => file === stem || file.startsWith(directory)),
         `${path} names ${named}, which the consumer does not have`,
       );

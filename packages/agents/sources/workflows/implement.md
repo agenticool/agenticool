@@ -1,29 +1,29 @@
 ---
 name: implement
-description: "Deliver one {{label}} GitHub issue or rework one {{label}} PR through an isolated {{prefix}}implementer by default. Use for \"implement #N\", \"implement <issue URL>\", \"rework <PR URL>\", or \"deliver this epic\" in {{repository}}. The main thread runs the queue script, dispatches one leaf at a time, and records fixed results. An explicit inline keyword keeps a small leaf or rework in the main thread."
+description: "Deliver one {{label}} GitHub issue or rework one {{label}} PR through an isolated implementer by default. Use for \"implement #N\", \"implement <issue URL>\", \"rework <PR URL>\", or \"deliver this epic\" in {{repository}}. The main thread runs the queue script, dispatches one leaf at a time, and records fixed results. An explicit inline keyword keeps a small leaf or rework in the main thread."
 argument-hint: "<#N | issue URL | PR URL> [inline] [parallel] [model <name>] [effort <level>] [reviewer ...]"
 codex:
   display_name: "{{label}}: Implement"
   short_description: "Dispatch an isolated issue delivery or PR rework"
-  default_prompt: "Use ${{prefix}}implement to deliver this {{label}} issue."
+  default_prompt: "Use $implement to deliver this {{label}} issue."
 ---
 # {{label}} implement
 
-You are the dispatcher in this thread. The {{prefix}}implementer is the delivery owner: it creates and owns the worktree, claims the issue, implements, validates, handles its review findings, runs {{prefix}}stack, and opens the ready-for-review PR. No separate orchestrator agent exists.
+You are the dispatcher in this thread. The implementer is the delivery owner: it creates and owns the worktree, claims the issue, implements, validates, handles its review findings, runs stack, and opens the ready-for-review PR. No separate orchestrator agent exists.
 
 ## Resolve the target
 
 1. Parse `#N`, an issue URL, or a PR URL in `{{repository}}`. Another repository is BLOCKED here. For a PR, read its number, branch, base/head, and closing issue through REST, and dispatch it with its closing leaf's ledger row even when that row says `in review`; never pick a different leaf with `--next`. The implementer reads the review findings.
-2. Parse `inline`, `parallel`, and overrides. `reviewer model <name>` and `reviewer effort <level>` target only {{prefix}}code-reviewer. Unprefixed `model <name>` or `effort <level>`, and `implementer` prefixes, target only {{prefix}}implementer. Preserve explicit constraints in every continuation and recovery handoff.
+2. Parse `inline`, `parallel`, and overrides. `reviewer model <name>` and `reviewer effort <level>` target only code-reviewer. Unprefixed `model <name>` or `effort <level>`, and `implementer` prefixes, target only implementer. Preserve explicit constraints in every continuation and recovery handoff.
 3. Run `git fetch origin` and record the fresh `origin/main` SHA. Read the current procedures from trunk if the checkout may be stale.
-4. Run `npx agenticool-delivery queue <issue>` and `--next` as [references/queue.md](references/queue.md) describes, for a single leaf or a container.
+4. Run `npx agenticool-dispatch queue <issue>` and `--next` as [references/queue.md](references/queue.md) describes, for a single leaf or a container.
 
 ## Pick the mode
 
 | Target | Default mode | Procedure |
 | --- | --- | --- |
-| Leaf issue | isolated {{prefix}}implementer | [references/delivery.md](references/delivery.md) |
-| PR rework | isolated {{prefix}}implementer | [references/delivery.md](references/delivery.md), Rework section |
+| Leaf issue | isolated implementer | [references/delivery.md](references/delivery.md) |
+| PR rework | isolated implementer | [references/delivery.md](references/delivery.md), Rework section |
 | Container or epic | sequential dependency queue in this thread | [references/queue.md](references/queue.md) |
 
 In isolated and queue mode the main thread reads the queue ledger and fixed result fields only: it runs the queue script, spawns, records results, and assesses compact escalation requests against the rubric. Do not read source or diffs, explore the implementation, or read detailed review reports during normal delivery; for a BLOCKED result or a needed decision, read only enough to explain it and ask the person. The implementer reads its own issue and owns the delivery gate.
@@ -46,7 +46,7 @@ Retain effort, rule, evidence, and reason in the ledger, assignment, fixed resul
 Send one bounded assignment: issue number and URL (or PR URL), trunk `main` and fresh SHA, actual base branch and SHA, the leaf's ledger line with its `dispatch` metadata, any verified prerequisite SHAs, `Owned by other running leaves: none` or the queue's ownership value, effort decision and explicit constraints, project {{project.number}} owner `{{project.owner}}`, the fixed result format in [references/delivery.md](references/delivery.md#result), and `Policy: tool=<tool> role=implementer model=<model> effort=<effort> (model: <source>, effort: <source>); decision: <rule>; evidence: <reference>; reason: <reason>; handoff overrides: <reviewer overrides or none>`. Reference repository instructions by path rather than copying them or this conversation.
 
 <!-- claude-only -->
-Use the Agent tool with `subagent_type: {{prefix}}implementer`, `model` and `effort` explicitly copied from the implementer's resolver output. The role's `isolation: worktree` creates its linked worktree. Send a person's correction to the same implementer with SendMessage at its existing effort.
+Use the Agent tool with `subagent_type: implementer`, `model` and `effort` explicitly copied from the implementer's resolver output. The role's `isolation: worktree` creates its linked worktree. Send a person's correction to the same implementer with SendMessage at its existing effort.
 <!-- /claude-only -->
 <!-- codex-only -->
 Use `spawn_agent` with `agent_type`, `model`, and `reasoning_effort` explicitly copied from the implementer's resolver `spawn` object and `fork_turns: "none"`. Always pass both settings: agent files omit them, so an omitted value falls back to the contributor's `[agents]` defaults. An unknown `agent_type` means the project is not trusted in Codex yet; report it and stop. Send a person's correction through the tool's continue mechanism (`followup_task` for an idle agent) to the same implementer at its existing effort.

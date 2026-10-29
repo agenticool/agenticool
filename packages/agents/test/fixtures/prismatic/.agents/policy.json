@@ -1,9 +1,7 @@
 {
   "description": "Repository binding, model, and effort policy for the agent workflows. scripts/agent-policy.mjs reads this file; both the Claude Code and Codex definitions are generated from it, and every placeholder in .agents/roles and .agents/workflows resolves here.",
   "binding": {
-    "namespace": "prism",
     "label": "Prismatic",
-    "repository": "samlevin/prismatic",
     "project": {
       "owner": "samlevin",
       "number": 2,

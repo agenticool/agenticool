@@ -44,7 +44,7 @@ function ghFailure(status, body) {
 
 /**
  * @typedef {{ viewer?: string | null, author?: string | null, tip?: string, mergeBase?: string, head?: string, user?: Error, review?: Error, state?: string, merged?: boolean }} MockOptions
- * @typedef {import('@agenticool/github').Run} MockRun
+ * @typedef {import('@agenticool/core').Run} MockRun
  * @param {MockOptions} [options]
  */
 function mockGitHub({
@@ -68,7 +68,7 @@ function mockGitHub({
     assert.deepEqual(args.slice(0, 2), ['api', '--include']);
     calls.push(args);
     const path = args[2];
-    if (path === `repos/${policy.binding.repository}/pulls/7`)
+    if (path === `repos/${policy.repository}/pulls/7`)
       return JSON.stringify({
         number: 7,
         state,
@@ -79,8 +79,7 @@ function mockGitHub({
         head: { sha: head },
       });
     if (
-      path ===
-      `repos/${policy.binding.repository}/compare/${tip}...${HEAD}?per_page=1`
+      path === `repos/${policy.repository}/compare/${tip}...${HEAD}?per_page=1`
     ) {
       // gh filters the compare response so its file patches never reach the buffer.
       assert.deepEqual(args.slice(3), [
@@ -93,7 +92,7 @@ function mockGitHub({
       if (user) throw user;
       return JSON.stringify(viewer === null ? {} : { login: viewer });
     }
-    if (path === `repos/${policy.binding.repository}/pulls/7/reviews`) {
+    if (path === `repos/${policy.repository}/pulls/7/reviews`) {
       assert.deepEqual(args.slice(3), ['--method', 'POST', '--input', '-']);
       const payload = JSON.parse(String(options.input));
       posts.push(payload);

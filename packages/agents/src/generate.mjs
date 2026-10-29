@@ -4,9 +4,10 @@
 // generated file is stale so the two tools cannot drift apart.
 //
 // The sources name no repository. The consumer's `policy.json` carries a
-// `binding` (the namespace prefix, repository, project, tracker documents,
-// and feature flags), and every `{{placeholder}}` and
-// `{{#feature}}...{{/feature}}` section in a source resolves against it.
+// `binding` (project, board documents, and feature flags), the origin remote
+// names the repository, and every `{{placeholder}}` and
+// `{{#feature}}...{{/feature}}` section in a source resolves against them.
+// Generated names carry no repository prefix.
 import {
   existsSync,
   mkdirSync,
@@ -23,11 +24,11 @@ import {
   loadPolicy,
   placeholders,
   POLICY_PATH,
-  prefix,
   resolve,
   TOOLS,
-} from '@agenticool/policy';
+} from '@agenticool/core';
 import { parse, stringify } from 'yaml';
+import { withDefaults } from './defaults.mjs';
 
 /** @typedef {Record<string, any>} Policy */
 
@@ -45,11 +46,17 @@ const OUTPUTS = {
   claude: { agents: '.claude/agents', skills: '.claude/skills' },
   codex: { agents: '.codex/agents', skills: '.agents/skills' },
 };
-const SECTIONS = ['binding', 'capabilities', 'roles', 'supported'];
+// Repository-only sources, which may add a role or workflow.
+const LOCAL = {
+  roles: '.agents/local/roles',
+  workflows: '.agents/local/workflows',
+};
 
 /** @param {string} base */
 function load(base) {
-  const policy = loadPolicy(base, { sections: SECTIONS });
+  const policy = withDefaults(
+    loadPolicy(base, { sections: ['binding.project'] }),
+  );
   binding(policy);
   return policy;
 }
@@ -155,9 +162,13 @@ export function renderBody(body, tool) {
     .concat('\n');
 }
 
+// Every generated file carries this text, which is how generate and check
+// tell their own output from the repository's other agents and skills.
+const GENERATED = 'by agenticool-agents. Edit the source and run';
+
 /** @param {string} sourcePath */
 function generated(sourcePath) {
-  return `Generated from ${sourcePath} by agenticool-agents. Edit the source and run \`npx agenticool-agents generate\`.`;
+  return `Generated from ${sourcePath} ${GENERATED} \`npx agenticool-agents generate\`.`;
 }
 
 /** @param {string} value */
@@ -196,7 +207,7 @@ export function renderRole(
     // pinning the policy here keeps the repository default without blocking
     // a prompt override.
     const frontmatter = {
-      name: prefix(policy) + name,
+      name,
       description: meta.description,
       ...(meta.claude ?? {}),
       model: settings.model,
@@ -209,9 +220,9 @@ export function renderRole(
   // passes the resolved policy to spawn_agent instead.
   const lines = [
     `# ${generated(sourcePath)}`,
-    `# Model and reasoning effort are intentionally absent: ${binding(policy).namespace} skills pass the`,
+    '# Model and reasoning effort are intentionally absent: the skills pass the',
     `# repository policy (${settings.model}, ${settings.effort}) or a prompt override to spawn_agent.`,
-    `name = ${tomlValue(prefix(policy) + name)}`,
+    `name = ${tomlValue(name)}`,
     `description = ${tomlValue(meta.description)}`,
   ];
   for (const [key, value] of Object.entries(meta.codex ?? {}))
@@ -244,7 +255,7 @@ export function renderWorkflow(
   if (tool === 'claude') {
     /** @type {Record<string, unknown>} */
     const frontmatter = {
-      name: prefix(policy) + name,
+      name,
       description: meta.description,
       ...(meta['argument-hint']
         ? { 'argument-hint': meta['argument-hint'] }
@@ -264,14 +275,12 @@ export function renderWorkflow(
   }
   const codex = meta.codex ?? {};
   files['SKILL.md'] =
-    `---\nname: ${prefix(policy) + name}\ndescription: ${JSON.stringify(meta.description)}\n---\n<!-- ${generated(sourcePath)} -->\n\n${text}`;
+    `---\nname: ${name}\ndescription: ${JSON.stringify(meta.description)}\n---\n<!-- ${generated(sourcePath)} -->\n\n${text}`;
   const manifest = {
     interface: {
       display_name: codex.display_name ?? `${binding(policy).label}: ${name}`,
       short_description: codex.short_description ?? meta.description,
-      default_prompt:
-        codex.default_prompt ??
-        `Use $${prefix(policy) + name} for this request.`,
+      default_prompt: codex.default_prompt ?? `Use $${name} for this request.`,
     },
     policy: {
       allow_implicit_invocation: codex.allow_implicit_invocation ?? true,
@@ -341,32 +350,32 @@ export function render(base = process.cwd()) {
     for (const tool of TOOLS) resolve(policy, { tool, capability: name });
   /** @type {Map<string, string>} */
   const files = new Map();
-  const roles = sources(base, 'roles', policy.local.roles);
+  const roles = sources(base, 'roles', LOCAL.roles);
   for (const [name, { directory, label }] of roles) {
     if (!policy.roles[name])
       throw new Error(`Role ${name} has no entry in ${POLICY_PATH}`);
     const source = include(readFileSync(join(directory, `${name}.md`), 'utf8'));
     const sourcePath = `${label}/${name}.md`;
     files.set(
-      `${OUTPUTS.claude.agents}/${prefix(policy)}${name}.md`,
+      `${OUTPUTS.claude.agents}/${name}.md`,
       renderRole(policy, name, source, 'claude', sourcePath),
     );
     files.set(
-      `${OUTPUTS.codex.agents}/${prefix(policy)}${name}.toml`,
+      `${OUTPUTS.codex.agents}/${name}.toml`,
       renderRole(policy, name, source, 'codex', sourcePath),
     );
   }
   for (const name of Object.keys(policy.roles))
     if (!roles.has(name))
       throw new Error(
-        `Role ${name} has no source in ${SHARED_LABEL}/roles or ${policy.local.roles}`,
+        `Role ${name} has no source in ${SHARED_LABEL}/roles or ${LOCAL.roles}`,
       );
-  const workflows = sources(base, 'workflows', policy.local.workflows);
+  const workflows = sources(base, 'workflows', LOCAL.workflows);
   for (const [name, { directory, label }] of workflows) {
     const source = include(readFileSync(join(directory, `${name}.md`), 'utf8'));
     const shared = join(directory, name);
     for (const tool of /** @type {('claude' | 'codex')[]} */ (TOOLS)) {
-      const target = `${OUTPUTS[tool].skills}/${prefix(policy)}${name}`;
+      const target = `${OUTPUTS[tool].skills}/${name}`;
       for (const [file, content] of Object.entries(
         renderWorkflow(policy, name, source, tool, `${label}/${name}.md`),
       ))
@@ -396,22 +405,22 @@ export function render(base = process.cwd()) {
   return files;
 }
 
-/**
- * @param {string} base
- * @param {Policy} policy
- */
-function ownedFiles(base, policy) {
+/** @param {string} path */
+const isGenerated = (path) =>
+  existsSync(path) && readFileSync(path, 'utf8').includes(GENERATED);
+
+// Generated agents, and every file of a skill whose SKILL.md is generated.
+/** @param {string} base */
+function ownedFiles(base) {
   /** @type {string[]} */
   const owned = [];
-  const own = prefix(policy);
   for (const tool of /** @type {('claude' | 'codex')[]} */ (TOOLS)) {
     for (const file of listFiles(join(base, OUTPUTS[tool].agents)))
-      if (relative(join(base, OUTPUTS[tool].agents), file).startsWith(own))
-        owned.push(relative(base, file));
+      if (isGenerated(file)) owned.push(relative(base, file));
     const skills = join(base, OUTPUTS[tool].skills);
     if (existsSync(skills))
       for (const entry of readdirSync(skills))
-        if (entry.startsWith(own))
+        if (isGenerated(join(skills, entry, 'SKILL.md')))
           for (const file of listFiles(join(skills, entry)))
             owned.push(relative(base, file));
   }
@@ -420,7 +429,7 @@ function ownedFiles(base, policy) {
 
 export function generate(base = process.cwd()) {
   const files = render(base);
-  for (const path of ownedFiles(base, load(base)))
+  for (const path of ownedFiles(base))
     if (!files.has(path)) rmSync(join(base, path));
   for (const [path, content] of files) {
     mkdirSync(dirname(join(base, path)), { recursive: true });
@@ -437,7 +446,6 @@ export function check(base = process.cwd()) {
     if (!existsSync(target) || readFileSync(target, 'utf8') !== content)
       stale.push(path);
   }
-  for (const path of ownedFiles(base, load(base)))
-    if (!files.has(path)) stale.push(path);
+  for (const path of ownedFiles(base)) if (!files.has(path)) stale.push(path);
   return stale.sort();
 }

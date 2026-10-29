@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
   check,
+  DEFAULTS,
   generate,
   include,
   parseSource,
@@ -14,24 +16,25 @@ import {
   renderWorkflow,
   SOURCES,
   substitute,
+  sync,
+  syncCheck,
 } from '@agenticool/agents';
-import { resolve } from '@agenticool/policy';
+import { resolve } from '@agenticool/core';
 import {
   consumer,
   FIXTURE,
   inBoth,
   other,
   policy,
-  PREFIX,
   sourcePairs,
 } from './helpers.mjs';
 
 test('substitute resolves every placeholder and feature section', () => {
   const text =
-    'Spawn {{prefix}}implementer in {{repository}}{{#infrastructure}} (infra){{/infrastructure}}.';
+    'Spawn implementer in {{repository}}{{#infrastructure}} (infra){{/infrastructure}}.';
   assert.equal(
     substitute(text, policy),
-    `Spawn ${PREFIX}implementer in ${policy.binding.repository}${
+    `Spawn implementer in ${policy.repository}${
       policy.binding.features.infrastructure ? ' (infra)' : ''
     }.`,
   );
@@ -40,12 +43,9 @@ test('substitute resolves every placeholder and feature section', () => {
       ...other,
       binding: { ...other.binding, features: { infrastructure: true } },
     }),
-    'Spawn other-implementer in example/other (infra).',
+    'Spawn implementer in example/other (infra).',
   );
-  assert.equal(
-    substitute(text, other),
-    'Spawn other-implementer in example/other.',
-  );
+  assert.equal(substitute(text, other), 'Spawn implementer in example/other.');
   // Feature flags with camelCase names work as sections too.
   assert.equal(
     substitute('a{{#browserMcp}} b{{/browserMcp}}', {
@@ -61,7 +61,12 @@ test('substitute resolves every placeholder and feature section', () => {
     () => substitute('{{nope}}', policy),
     /Unknown placeholder: nope/,
   );
-  assert.equal(substitute('a \\{{prefix}} b', policy), 'a {{prefix}} b');
+  assert.equal(substitute('a \\{{label}} b', policy), 'a {{label}} b');
+  // Generated names carry no prefix, so neither does any source.
+  assert.throws(
+    () => substitute('{{prefix}}implement', policy),
+    /Unknown placeholder: prefix/,
+  );
   assert.equal(
     substitute('gh api {{project.restPath}}/fields', other),
     'gh api users/example/projectsV2/7/fields',
@@ -138,13 +143,12 @@ test('placeholder sections keep their content only for a non-empty value', () =>
 test('generated output carries no unresolved placeholder and follows the binding', () => {
   for (const [path, content] of render(FIXTURE)) {
     // The maintainer skill documents the placeholders literally.
-    if (!path.includes(`/${PREFIX}agents/`))
-      assert.doesNotMatch(content, /\{\{/, path);
+    if (!path.includes(`/agents/`)) assert.doesNotMatch(content, /\{\{/, path);
     if (!/^\.agents\/[^/]+\.md$/.test(path))
-      assert.ok(path.includes(`/${PREFIX}`), path);
+      assert.ok(path.includes(`/`), path);
   }
   const resolved = resolve(other, { tool: 'claude', role: 'implementer' });
-  assert.equal(resolved.spawn.subagent_type, 'other-implementer');
+  assert.equal(resolved.spawn.subagent_type, 'implementer');
 });
 
 const source = `---
@@ -212,7 +216,7 @@ test('Claude agents pin the policy; Codex agents omit model and effort', () => {
     roles: { ...policy.roles, sample: 'code-review' },
   };
   const claude = renderRole(sample, 'sample', source, 'claude');
-  assert.match(claude, new RegExp(`^name: ${PREFIX}sample$`, 'm'));
+  assert.match(claude, new RegExp(`^name: sample$`, 'm'));
   assert.match(claude, /^tools: Read, Grep$/m);
   assert.match(
     claude,
@@ -235,7 +239,7 @@ test('Claude agents pin the policy; Codex agents omit model and effort', () => {
     /<!-- Generated from @agenticool\/agents\/sources\/roles\/sample\.md by agenticool-agents\. Edit the source and run `npx agenticool-agents generate`\. -->/,
   );
   const codex = renderRole(sample, 'sample', source, 'codex');
-  assert.match(codex, new RegExp(`^name = "${PREFIX}sample"$`, 'm'));
+  assert.match(codex, new RegExp(`^name = "sample"$`, 'm'));
   assert.match(codex, /^default_permissions = ":read-only"$/m);
   assert.doesNotMatch(codex, /^model/m);
   assert.doesNotMatch(codex, /^model_reasoning_effort/m);
@@ -268,7 +272,7 @@ Body.
 `;
   const claude = renderWorkflow(policy, 'sample', workflow, 'claude');
   assert.deepEqual(Object.keys(claude), ['SKILL.md']);
-  assert.match(claude['SKILL.md'], new RegExp(`^name: ${PREFIX}sample$`, 'm'));
+  assert.match(claude['SKILL.md'], new RegExp(`^name: sample$`, 'm'));
   assert.match(claude['SKILL.md'], /^argument-hint: '\[target\]'$/m);
   assert.match(claude['SKILL.md'], /^disable-model-invocation: true$/m);
   assert.match(
@@ -283,7 +287,7 @@ Body.
     'SKILL.md',
     'agents/openai.yaml',
   ]);
-  assert.match(codex['SKILL.md'], new RegExp(`^name: ${PREFIX}sample$`, 'm'));
+  assert.match(codex['SKILL.md'], new RegExp(`^name: sample$`, 'm'));
   assert.doesNotMatch(codex['SKILL.md'], /^model:/m);
   assert.match(
     codex['agents/openai.yaml'],
@@ -300,8 +304,8 @@ test('every role and workflow renders for both tools with matching bodies', () =
   const files = render(FIXTURE);
   const names = [...files.keys()];
   for (const role of Object.keys(policy.roles)) {
-    assert.ok(names.includes(`.claude/agents/${PREFIX}${role}.md`), role);
-    assert.ok(names.includes(`.codex/agents/${PREFIX}${role}.toml`), role);
+    assert.ok(names.includes(`.claude/agents/${role}.md`), role);
+    assert.ok(names.includes(`.codex/agents/${role}.toml`), role);
   }
   for (const skill of [
     'agents',
@@ -313,26 +317,20 @@ test('every role and workflow renders for both tools with matching bodies', () =
     'plain-language',
     'stack',
   ]) {
+    assert.ok(names.includes(`.claude/skills/${skill}/SKILL.md`), skill);
+    assert.ok(names.includes(`.agents/skills/${skill}/SKILL.md`), skill);
     assert.ok(
-      names.includes(`.claude/skills/${PREFIX}${skill}/SKILL.md`),
-      skill,
-    );
-    assert.ok(
-      names.includes(`.agents/skills/${PREFIX}${skill}/SKILL.md`),
-      skill,
-    );
-    assert.ok(
-      names.includes(`.agents/skills/${PREFIX}${skill}/agents/openai.yaml`),
+      names.includes(`.agents/skills/${skill}/agents/openai.yaml`),
       skill,
     );
   }
   // Shared references are copied into both skills byte for byte.
   assert.equal(
     files.get(
-      `.claude/skills/${PREFIX}create-github-issue/references/github-operations.md`,
+      `.claude/skills/create-github-issue/references/github-operations.md`,
     ),
     files.get(
-      `.agents/skills/${PREFIX}create-github-issue/references/github-operations.md`,
+      `.agents/skills/create-github-issue/references/github-operations.md`,
     ),
   );
   // Tool-only blocks aside, the two renderings of a source are the same text:
@@ -446,8 +444,8 @@ test('the review packet has one source that the reviewer, the delivery procedure
   ])
     assert.ok(packet.includes(field), field);
   for (const path of [
-    `.claude/agents/${PREFIX}code-reviewer.md`,
-    `.codex/agents/${PREFIX}code-reviewer.toml`,
+    `.claude/agents/code-reviewer.md`,
+    `.codex/agents/code-reviewer.toml`,
     ...inBoth('implement/references/delivery.md'),
     ...inBoth('review-code/SKILL.md'),
   ])
@@ -479,13 +477,13 @@ test('generate writes every file and check reports stale or orphaned output', ()
     },
   );
   const written = generate(base);
-  const local = written.filter((path) => /-(sample|flow)[./]/.test(path));
+  const local = written.filter((path) => /\/(sample|flow)[./]/.test(path));
   assert.deepEqual(local, [
-    `.agents/skills/${PREFIX}flow/SKILL.md`,
-    `.agents/skills/${PREFIX}flow/agents/openai.yaml`,
-    `.claude/agents/${PREFIX}sample.md`,
-    `.claude/skills/${PREFIX}flow/SKILL.md`,
-    `.codex/agents/${PREFIX}sample.toml`,
+    `.agents/skills/flow/SKILL.md`,
+    `.agents/skills/flow/agents/openai.yaml`,
+    `.claude/agents/sample.md`,
+    `.claude/skills/flow/SKILL.md`,
+    `.codex/agents/sample.toml`,
   ]);
   // The shared output is the fixture consumer's, byte for byte.
   for (const path of written.filter((path) => !local.includes(path)))
@@ -495,18 +493,23 @@ test('generate writes every file and check reports stale or orphaned output', ()
       path,
     );
   assert.match(
-    readFileSync(join(base, `.claude/agents/${PREFIX}sample.md`), 'utf8'),
+    readFileSync(join(base, `.claude/agents/sample.md`), 'utf8'),
     /Generated from \.agents\/local\/roles\/sample\.md by agenticool-agents/,
   );
   assert.deepEqual(check(base), []);
-  writeFileSync(join(base, `.codex/agents/${PREFIX}sample.toml`), 'edited');
-  writeFileSync(join(base, `.claude/agents/${PREFIX}orphan.md`), 'orphan');
+  writeFileSync(join(base, `.codex/agents/sample.toml`), 'edited');
+  // Generated output whose source is gone is an orphan; a file without the
+  // generated header is the repository's own.
+  writeFileSync(
+    join(base, '.claude/agents/orphan.md'),
+    readFileSync(join(base, '.claude/agents/sample.md'), 'utf8'),
+  );
   writeFileSync(join(base, '.claude/agents/personal.md'), 'not ours');
   mkdirSync(join(base, '.claude/skills/personal'));
   writeFileSync(join(base, '.claude/skills/personal/SKILL.md'), 'not ours');
   assert.deepEqual(check(base), [
-    `.claude/agents/${PREFIX}orphan.md`,
-    `.codex/agents/${PREFIX}sample.toml`,
+    `.claude/agents/orphan.md`,
+    `.codex/agents/sample.toml`,
   ]);
   generate(base);
   assert.deepEqual(check(base), []);
@@ -514,11 +517,20 @@ test('generate writes every file and check reports stale or orphaned output', ()
     readFileSync(join(base, '.claude/agents/personal.md'), 'utf8'),
     'not ours',
   );
-  // Rebinding the same sources renames the output and resolves the text.
+  // Rebinding the same sources keeps the names and resolves the text.
+  const { repository, ...rebound } = other;
+  execFileSync('git', [
+    '-C',
+    base,
+    'remote',
+    'set-url',
+    'origin',
+    `https://github.com/${repository}.git`,
+  ]);
   writeFileSync(
     join(base, '.agents/policy.json'),
     JSON.stringify({
-      ...other,
+      ...rebound,
       roles: { ...other.roles, sample: 'code-review' },
     }),
   );
@@ -527,45 +539,57 @@ test('generate writes every file and check reports stale or orphaned output', ()
     source.replace('Shared line.', 'Shared {{label}} line in {{repository}}.'),
   );
   assert.deepEqual(
-    generate(base).filter((path) => /-(sample|flow)[./]/.test(path)),
+    generate(base).filter((path) => /\/(sample|flow)[./]/.test(path)),
     [
-      '.agents/skills/other-flow/SKILL.md',
-      '.agents/skills/other-flow/agents/openai.yaml',
-      '.claude/agents/other-sample.md',
-      '.claude/skills/other-flow/SKILL.md',
-      '.codex/agents/other-sample.toml',
+      '.agents/skills/flow/SKILL.md',
+      '.agents/skills/flow/agents/openai.yaml',
+      '.claude/agents/sample.md',
+      '.claude/skills/flow/SKILL.md',
+      '.codex/agents/sample.toml',
     ],
   );
   assert.match(
-    readFileSync(join(base, '.claude/agents/other-sample.md'), 'utf8'),
+    readFileSync(join(base, '.claude/agents/sample.md'), 'utf8'),
     /Shared Other line in example\/other\./,
   );
   assert.match(
-    readFileSync(
-      join(base, '.agents/skills/other-flow/agents/openai.yaml'),
-      'utf8',
-    ),
+    readFileSync(join(base, '.agents/skills/flow/agents/openai.yaml'), 'utf8'),
     /display_name: 'Other: flow'/,
   );
 });
 
-test('local sources come from the configured directories', () => {
-  const base = consumer(
-    {
-      ...policy,
-      roles: { ...policy.roles, sample: 'code-review' },
-      local: { roles: 'agents/roles', workflows: 'agents/flows' },
+test('a policy with only the project and features generates and syncs a complete agent set', () => {
+  const base = consumer({
+    repository: 'acme/widgets',
+    binding: {
+      project: { owner: 'acme', number: 1, name: 'Widgets delivery' },
+      features: {},
     },
-    { 'agents/roles/sample.md': source, 'agents/flows/flow.md': flow },
+  });
+  const written = generate(base);
+  assert.deepEqual(written, [...render(FIXTURE).keys()].sort());
+  sync(base);
+  assert.deepEqual(check(base), []);
+  assert.deepEqual(syncCheck(base), []);
+  const implementer = readFileSync(
+    join(base, '.claude/agents/implementer.md'),
+    'utf8',
   );
-  const files = render(base);
+  assert.match(implementer, /^name: implementer$/m);
   assert.match(
-    String(files.get(`.claude/agents/${PREFIX}sample.md`)),
-    /Generated from agents\/roles\/sample\.md/,
+    implementer,
+    new RegExp(
+      `^model: ${DEFAULTS.capabilities.implementation.claude.model}$`,
+      'm',
+    ),
   );
+  assert.match(implementer, /inside `acme\/widgets`/);
   assert.match(
-    String(files.get(`.claude/skills/${PREFIX}flow/SKILL.md`)),
-    /Generated from agents\/flows\/flow\.md/,
+    readFileSync(
+      join(base, '.agents/skills/implement/agents/openai.yaml'),
+      'utf8',
+    ),
+    /display_name: 'widgets: Implement'/,
   );
 });
 
@@ -607,9 +631,12 @@ test('a role without a policy entry or source is rejected', () => {
 test('an incomplete binding fails before anything is generated', () => {
   const base = consumer({
     ...policy,
-    binding: { ...policy.binding, docs: undefined },
+    binding: { ...policy.binding, project: undefined },
   });
-  assert.throws(() => generate(base), /binding is missing docs\.triage/);
+  assert.throws(
+    () => generate(base),
+    /policy\.json is missing binding\.project/,
+  );
 });
 
 test('the shared rules land in .agents with the binding resolved', () => {
@@ -625,11 +652,8 @@ test('the shared rules land in .agents with the binding resolved', () => {
     '.agents/worktree-isolation.md',
   ]);
   const groups = String(files.get('.agents/independence-groups.md'));
-  assert.match(
-    groups,
-    /^Only `other-issue-triager` forms independence groups/m,
-  );
-  assert.match(groups, /^<!-- other-independence-groups -->$/m);
+  assert.match(groups, /^Only `issue-triager` forms independence groups/m);
+  assert.match(groups, /^<!-- independence-groups -->$/m);
   assert.match(
     String(files.get('.agents/issue-creation.md')),
     /^# Other issue creation\n[\s\S]*\[TRIAGE\.md\]\(\.\.\/TRIAGE\.md\)/,

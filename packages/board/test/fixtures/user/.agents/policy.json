@@ -1,0 +1,18 @@
+{
+  "binding": {
+    "label": "Widgets",
+    "project": {
+      "owner": "acme",
+      "number": 7,
+      "name": "Widgets delivery"
+    },
+    "docs": {
+      "triage": "ISSUE_TRIAGE.md",
+      "workflow": "WORKFLOW.md",
+      "guides": ["CONTRIBUTING.md"]
+    },
+    "features": {
+      "infrastructure": false
+    }
+  }
+}

@@ -1,0 +1,109 @@
+# Reconciles one issue and its hierarchy, or sweeps the project when `issue` is
+# 0: missing open issues join the project (sweep only), then triage, then
+# containers. Callers start from templates/workflows/board-issue-states.yml
+# in @agenticool/board. The steps install only @agenticool/board at the
+# caller's board_version, outside the checkout, and run it against the
+# caller's default-branch .agents/policy.json.
+
+name: 'Board: reconcile issue states (reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      board_version:
+        description: Version of @agenticool/board to install; `workspace` installs the checkout's workspace packages instead
+        type: string
+        required: true
+      issue:
+        description: Issue to reconcile with its hierarchy; 0 sweeps the project
+        type: number
+        default: 0
+      dry_run:
+        description: Preview without writes
+        type: boolean
+        default: false
+    secrets:
+      project_token:
+        description: Projects token, from the AGENTICOOL_PROJECT_TOKEN secret
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-issues:
+    name: Reconcile issue project states
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      ISSUE_NUMBER: ${{ inputs.issue }}
+    steps:
+      # Without the secret the job succeeds with a warning, so a repository
+      # can install the workflows before its project and token exist. A set
+      # but invalid token still fails in the command steps.
+      - name: Check the project token
+        id: token
+        env:
+          PROJECT_TOKEN: ${{ secrets.project_token }}
+        run: |
+          if [ -n "$PROJECT_TOKEN" ]; then
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::AGENTICOOL_PROJECT_TOKEN secret is not set; skipping"
+          fi
+      # Execute trusted default-branch code.
+      - name: Check out the default branch
+        if: steps.token.outputs.set == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          # Cone mode keeps root files such as .tool-versions. The workspace
+          # install also needs the packages.
+          sparse-checkout: |
+            .agents
+            ${{ inputs.board_version == 'workspace' && 'packages' || '' }}
+      - name: Set up Node.js
+        if: steps.token.outputs.set == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .tool-versions
+      - name: Install the board
+        if: steps.token.outputs.set == 'true'
+        id: install
+        env:
+          BOARD_VERSION: ${{ inputs.board_version }}
+        run: |
+          if [ "$BOARD_VERSION" = workspace ]; then
+            npm ci
+            echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+          else
+            npm install --prefix "$RUNNER_TEMP/agenticool" --no-save --no-audit --no-fund "@agenticool/board@$BOARD_VERSION"
+            echo "$RUNNER_TEMP/agenticool/node_modules/.bin" >> "$GITHUB_PATH"
+          fi
+      # Each sweep runs even when an earlier one failed, and any failure fails
+      # the job at the end.
+      - name: Add missing open issues to the project
+        if: ${{ inputs.issue == 0 && !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          AGENTICOOL_PROJECT_TOKEN: ${{ secrets.project_token }}
+          SWEEP: 'true'
+        run: |
+          agenticool-board membership
+      - name: Triage issues
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          AGENTICOOL_PROJECT_TOKEN: ${{ secrets.project_token }}
+        run: |
+          scope=()
+          if [ "$ISSUE_NUMBER" != 0 ]; then scope=(--issue "$ISSUE_NUMBER"); fi
+          agenticool-board triage "${scope[@]}"
+      - name: Close finished containers
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          AGENTICOOL_PROJECT_TOKEN: ${{ secrets.project_token }}
+        run: |
+          scope=()
+          if [ "$ISSUE_NUMBER" != 0 ]; then scope=(--issue "$ISSUE_NUMBER"); fi
+          agenticool-board containers "${scope[@]}"

@@ -1,0 +1,19 @@
+{
+  "binding": {
+    "label": "Gadgets",
+    "project": {
+      "owner": "example-org",
+      "ownerType": "organization",
+      "number": 3,
+      "name": "Gadgets board"
+    },
+    "docs": {
+      "triage": "docs/triage.md",
+      "workflow": "docs/workflow.md",
+      "guides": ["docs/guide.md"]
+    },
+    "features": {
+      "infrastructure": false
+    }
+  }
+}

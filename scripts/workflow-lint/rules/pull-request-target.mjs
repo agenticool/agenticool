@@ -18,10 +18,9 @@ const PR_HEAD =
 // An agenticool reusable workflow at a full commit SHA or a release tag.
 const AGENTICOOL_REUSABLE =
   /^agenticool\/agenticool\/\.github\/workflows\/_[a-z0-9-]+\.ya?ml@(?:[0-9a-f]{40}|[a-z0-9-]+-v\d+\.\d+\.\d+)$/;
-// In agenticool itself, a local call to its tracker workflows, which runs them
+// In agenticool itself, a local call to its board workflows, which runs them
 // at the caller's commit on the default branch.
-const AGENTICOOL_LOCAL =
-  /^\.\/\.github\/workflows\/_tracker-[a-z0-9-]+\.ya?ml$/;
+const AGENTICOOL_LOCAL = /^\.\/\.github\/workflows\/_board-[a-z0-9-]+\.ya?ml$/;
 // Expressions that name the base repository.
 const BASE_REPOSITORY = new Set([
   'github.repository',
@@ -63,7 +62,7 @@ function untrustedCode(definition, repository) {
     // A called workflow runs with this event's token and secrets, but its
     // own trigger is `workflow_call`, so its steps are not checked here.
     // agenticool's own reusable workflows, pinned at a commit or release tag,
-    // check out only the caller's default branch, which the tracker tests
+    // check out only the caller's default branch, which the board tests
     // enforce, so calling them is safe. A local call under
     // pull_request_target loads the workflow from the base commit too.
     if (

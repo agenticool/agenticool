@@ -1,0 +1,26 @@
+{
+  "name": "@agenticool/core",
+  "version": "0.0.0",
+  "description": "Internal helpers for the other @agenticool packages: GitHub calls through `gh api`, argument parsing, and `.agents/policy.json` loading. No stable public API.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./policy.schema.json": "./src/policy.schema.json"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=24.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticool/agenticool.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

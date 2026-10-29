@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { renderTemplate, TEMPLATES } from '@agenticool/tracker';
+import { renderTemplate, TEMPLATES } from '@agenticool/board';
 import {
   AGENT_LOCAL_FILES,
   AGENTS_SECTIONS,
@@ -17,7 +17,7 @@ import {
   sync,
   syncCheck,
 } from '@agenticool/agents';
-import { consumer, other, policy, PREFIX, section } from './helpers.mjs';
+import { consumer, other, policy, section } from './helpers.mjs';
 
 /** @typedef {Record<string, any>} Policy */
 
@@ -26,7 +26,7 @@ const BIN = fileURLToPath(
 );
 
 /**
- * The fixture policy with the keys sync needs, plus `features` overrides.
+ * The fixture policy with `features` overrides.
  * @param {Policy} value
  * @param {Record<string, boolean>} [features]
  * @returns {Policy}
@@ -35,7 +35,6 @@ const bound = (value, features = {}) => ({
   ...value,
   binding: {
     ...value.binding,
-    tokenEnv: 'PROJECT_TOKEN',
     features: { ...value.binding.features, ...features },
   },
 });
@@ -54,10 +53,10 @@ const SYNCED = [
   '.github/ISSUE_TEMPLATE/task.yml',
   '.github/labels.json',
   '.github/pull_request_template.md',
-  '.github/workflows/tracker-issue-states.yml',
-  '.github/workflows/tracker-pr-issue-status.yml',
-  '.github/workflows/tracker-pr-metadata.yml',
-  '.github/workflows/tracker-project-membership.yml',
+  '.github/workflows/board-issue-states.yml',
+  '.github/workflows/board-pr-issue-status.yml',
+  '.github/workflows/board-pr-metadata.yml',
+  '.github/workflows/board-project-membership.yml',
   '.gitignore',
   'AGENTS.md',
 ];
@@ -96,7 +95,7 @@ function capture(args, base) {
   }
 }
 
-test('a first sync writes the tracker templates, the AGENTS.md sections, and the .gitignore block', () => {
+test('a first sync writes the board templates, the AGENTS.md sections, and the .gitignore block', () => {
   const value = bound(other);
   value.labels = {
     extra: [
@@ -111,14 +110,14 @@ test('a first sync writes the tracker templates, the AGENTS.md sections, and the
       read(base, `.github/ISSUE_TEMPLATE/${name}.yml`),
       renderTemplate(`ISSUE_TEMPLATE/${name}.yml`, value),
     );
-  for (const name of ['tracker-pr-issue-status.yml', 'tracker-pr-metadata.yml'])
+  for (const name of ['board-pr-issue-status.yml', 'board-pr-metadata.yml'])
     assert.equal(
       read(base, `.github/workflows/${name}`),
       renderTemplate(`workflows/${name}`, value),
     );
   assert.match(
-    read(base, '.github/workflows/tracker-pr-metadata.yml'),
-    /token_env: 'PROJECT_TOKEN'/,
+    read(base, '.github/workflows/board-pr-metadata.yml'),
+    /project_token: \$\{\{ secrets\.AGENTICOOL_PROJECT_TOKEN \}\}/,
   );
   assert.equal(
     read(base, '.github/pull_request_template.md'),
@@ -162,13 +161,13 @@ test('a first sync writes the tracker templates, the AGENTS.md sections, and the
     'Branch names',
   ])
     section(agents, heading);
-  assert.match(agents, /`\/other-implement` \| `\$other-implement` \|/);
+  assert.match(agents, /`\/implement` \| `\$implement` \|/);
   assert.match(
     agents,
     /^Repo `example\/other`, trunk `main`, project \[Other delivery\]\(https:\/\/github\.com\/users\/example\/projects\/7\)\.$/m,
   );
   assert.match(agents, /as `TRIAGE\.md` defines/);
-  assert.match(agents, /`npx agenticool-delivery branch-name <issue>`/);
+  assert.match(agents, /`npx agenticool-dispatch branch-name <issue>`/);
   // The infrastructure feature section follows the binding.
   assert.doesNotMatch(agents, /infrastructure applies/);
   const infra = consumer(bound(other, { infrastructure: true }));
@@ -183,15 +182,14 @@ test('a first sync writes the tracker templates, the AGENTS.md sections, and the
 });
 
 test('the repository that hosts the reusable workflows calls them locally', () => {
-  const value = bound(other);
-  value.binding.repository = 'agenticool/agenticool';
+  const value = { ...bound(other), repository: 'agenticool/agenticool' };
   const base = consumer(value);
   sync(base);
   for (const name of [
-    'tracker-issue-states.yml',
-    'tracker-pr-issue-status.yml',
-    'tracker-pr-metadata.yml',
-    'tracker-project-membership.yml',
+    'board-issue-states.yml',
+    'board-pr-issue-status.yml',
+    'board-pr-metadata.yml',
+    'board-project-membership.yml',
   ]) {
     const text = read(base, `.github/workflows/${name}`);
     const calls = [...text.matchAll(/^\s*uses: (.+)$/gm)].map(
@@ -201,11 +199,11 @@ test('the repository that hosts the reusable workflows calls them locally', () =
     for (const uses of calls)
       assert.match(
         uses,
-        /^\.\/\.github\/workflows\/_tracker-[a-z-]+\.yml$/,
+        /^\.\/\.github\/workflows\/_board-[a-z-]+\.yml$/,
         name,
       );
-    // Each call runs the workspace tracker rather than a published release.
-    const versions = [...text.matchAll(/^\s*tracker_version: (.+)$/gm)].map(
+    // Each call runs the workspace board rather than a published release.
+    const versions = [...text.matchAll(/^\s*board_version: (.+)$/gm)].map(
       ([, version]) => version,
     );
     assert.deepEqual(
@@ -216,10 +214,10 @@ test('the repository that hosts the reusable workflows calls them locally', () =
     assert.equal(
       text
         .replaceAll(/uses: \.\/(\S+)/g, 'uses: agenticool/agenticool/$1@X')
-        .replaceAll("tracker_version: 'workspace'", 'tracker_version: X'),
+        .replaceAll("board_version: 'workspace'", 'board_version: X'),
       renderTemplate(`workflows/${name}`, value)
-        .replaceAll(/@tracker-v\S+/g, '@X')
-        .replaceAll(/tracker_version: '[^']+'/g, 'tracker_version: X'),
+        .replaceAll(/@board-v\S+/g, '@X')
+        .replaceAll(/board_version: '[^']+'/g, 'board_version: X'),
     );
   }
   assert.deepEqual(syncCheck(base), []);
@@ -227,11 +225,11 @@ test('the repository that hosts the reusable workflows calls them locally', () =
   const pinned = consumer(bound(other));
   sync(pinned);
   assert.match(
-    read(pinned, '.github/workflows/tracker-pr-metadata.yml'),
-    /uses: agenticool\/agenticool\/\.github\/workflows\/_tracker-pr-metadata\.yml@tracker-v/,
+    read(pinned, '.github/workflows/board-pr-metadata.yml'),
+    /uses: agenticool\/agenticool\/\.github\/workflows\/_board-pr-metadata\.yml@board-v/,
   );
   assert.doesNotMatch(
-    read(pinned, '.github/workflows/tracker-pr-metadata.yml'),
+    read(pinned, '.github/workflows/board-pr-metadata.yml'),
     /workspace/,
   );
 });
@@ -264,11 +262,11 @@ test('a second sync changes nothing', () => {
 });
 
 test('check reports every missing, edited, or outdated synced file', () => {
-  const value = bound(policy);
-  const base = consumer(value);
+  const { repository, ...value } = bound(policy);
+  const base = consumer({ ...value, repository });
   assert.deepEqual(syncCheck(base), [...SYNCED, 'ISSUE_TRIAGE.md'].sort());
   sync(base);
-  rmSync(join(base, '.github/workflows/tracker-pr-metadata.yml'));
+  rmSync(join(base, '.github/workflows/board-pr-metadata.yml'));
   writeFileSync(
     join(base, 'AGENTS.md'),
     read(base, 'AGENTS.md').replace('## Branch names', '## Branches'),
@@ -287,7 +285,7 @@ test('check reports every missing, edited, or outdated synced file', () => {
   );
   const stale = [
     '.github/labels.json',
-    '.github/workflows/tracker-pr-metadata.yml',
+    '.github/workflows/board-pr-metadata.yml',
     '.gitignore',
     'AGENTS.md',
   ];
@@ -307,13 +305,13 @@ test('check reports every missing, edited, or outdated synced file', () => {
     stderr: '',
   });
   // Generated and synced staleness are reported together.
-  rmSync(join(base, `.claude/agents/${PREFIX}implementer.md`));
+  rmSync(join(base, `.claude/agents/implementer.md`));
   rmSync(join(base, '.github/pull_request_template.md'));
   const both = capture(['check'], base);
   assert.equal(both.status, 1);
   assert.match(
     both.stderr,
-    /^Generated agent definitions are out of date\. Run `npx agenticool-agents generate` and commit:\n {2}\.claude\/agents\/prism-implementer\.md\nSynced repository files are out of date\. Run `npx agenticool-agents sync` and commit:\n {2}\.github\/pull_request_template\.md$/,
+    /^Generated agent definitions are out of date\. Run `npx agenticool-agents generate` and commit:\n {2}\.claude\/agents\/implementer\.md\nSynced repository files are out of date\. Run `npx agenticool-agents sync` and commit:\n {2}\.github\/pull_request_template\.md$/,
   );
 });
 
@@ -484,14 +482,12 @@ test('without features.browserMcp, sync writes neither MCP file', () => {
   assert.deepEqual(syncCheck(base), []);
 });
 
-// A consumer repository after `generate` and `sync`, as a git repository so
-// `git check-ignore` reads its .gitignore.
+// A consumer repository after `generate` and `sync`; it is a git repository,
+// so `git check-ignore` reads its .gitignore.
 function synced() {
   const base = consumer(bound(policy, { browserMcp: true }));
   generate(base);
   sync(base);
-  const init = spawnSync('git', ['init', '-q'], { cwd: base });
-  assert.equal(init.status, 0);
   return base;
 }
 
@@ -554,7 +550,7 @@ test('AGENTS.md names the review packet that leaf delivery carries', () => {
     agents,
     /A review handoff after the final push sends the review packet that leaf delivery defines, taking the base SHA from `git merge-base <base> HEAD`/,
   );
-  const target = `.agents/skills/${PREFIX}implement/references/delivery.md`;
+  const target = `.agents/skills/implement/references/delivery.md`;
   assert.ok(agents.includes(`[Leaf delivery](${target})`));
   const packet = readFileSync(
     join(SOURCES, 'includes/review-packet.md'),
@@ -579,7 +575,7 @@ test('the sync command prints every synced path', () => {
 
 // CONTRIBUTING.md is a guide for people; agents load only the files below and
 // what `binding.docs.guides` names.
-test('no shared source, AGENTS.md section, tracker template, or generated file names CONTRIBUTING.md', () => {
+test('no shared source, AGENTS.md section, board template, or generated file names CONTRIBUTING.md', () => {
   const roots = [
     SOURCES,
     fileURLToPath(new URL('../templates/agents-md/', import.meta.url)),
@@ -614,8 +610,6 @@ test('the synced files carry the Status and dependency rules, and no workflow na
   const dependencies = section(triage, 'Dependencies');
   assert.match(dependencies, /blocked-by relationship on the issue that waits/);
   assert.ok(
-    dependencies.includes(
-      `.agents/skills/${PREFIX}implement/references/delivery.md`,
-    ),
+    dependencies.includes(`.agents/skills/implement/references/delivery.md`),
   );
 });
