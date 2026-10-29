@@ -397,13 +397,16 @@ test('loading fills the model, effort, role, and rubric defaults, and a policy o
     DEFAULTS.capabilities.implementation,
   );
   assert.equal(override.roles.auditor, 'code-review');
-  assert.equal(override.roles.implementer, DEFAULTS.roles.implementer);
+  assert.equal(
+    override.roles['ac-implementer'],
+    DEFAULTS.roles['ac-implementer'],
+  );
   assert.deepEqual(override.supported.codex, { models: { 'gpt-7': ['low'] } });
   assert.deepEqual(override.supported.claude, DEFAULTS.supported.claude);
   assert.equal(override.implementationEffort.default, 'low');
   // Defaults never leak between policies.
   minimal.roles.implementer = 'changed';
-  assert.equal(DEFAULTS.roles.implementer, 'implementation');
+  assert.equal(DEFAULTS.roles['ac-implementer'], 'implementation');
   // The prismatic policy's own capabilities win over the defaults.
   const loaded = loadPolicy(directory);
   assert.deepEqual(loaded.capabilities, read('prismatic').capabilities);

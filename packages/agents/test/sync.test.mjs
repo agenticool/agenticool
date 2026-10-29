@@ -161,7 +161,7 @@ test('a first sync writes the board templates, the AGENTS.md sections, and the .
     'Branch names',
   ])
     section(agents, heading);
-  assert.match(agents, /`\/implement` \| `\$implement` \|/);
+  assert.match(agents, /`\/ac-implement` \| `\$ac-implement` \|/);
   assert.match(
     agents,
     /^Repo `example\/other`, trunk `main`, project \[Other delivery\]\(https:\/\/github\.com\/users\/example\/projects\/7\)\.$/m,
@@ -305,13 +305,13 @@ test('check reports every missing, edited, or outdated synced file', () => {
     stderr: '',
   });
   // Generated and synced staleness are reported together.
-  rmSync(join(base, `.claude/agents/implementer.md`));
+  rmSync(join(base, `.claude/agents/ac-implementer.md`));
   rmSync(join(base, '.github/pull_request_template.md'));
   const both = capture(['check'], base);
   assert.equal(both.status, 1);
   assert.match(
     both.stderr,
-    /^Generated agent definitions are out of date\. Run `npx agenticool-agents generate` and commit:\n {2}\.claude\/agents\/implementer\.md\nSynced repository files are out of date\. Run `npx agenticool-agents sync` and commit:\n {2}\.github\/pull_request_template\.md$/,
+    /^Generated agent definitions are out of date\. Run `npx agenticool-agents generate` and commit:\n {2}\.claude\/agents\/ac-implementer\.md\nSynced repository files are out of date\. Run `npx agenticool-agents sync` and commit:\n {2}\.github\/pull_request_template\.md$/,
   );
 });
 
@@ -550,7 +550,7 @@ test('AGENTS.md names the review packet that leaf delivery carries', () => {
     agents,
     /A review handoff after the final push sends the review packet that leaf delivery defines, taking the base SHA from `git merge-base <base> HEAD`/,
   );
-  const target = `.agents/skills/implement/references/delivery.md`;
+  const target = `.agents/skills/ac-implement/references/delivery.md`;
   assert.ok(agents.includes(`[Leaf delivery](${target})`));
   const packet = readFileSync(
     join(SOURCES, 'includes/review-packet.md'),
@@ -610,6 +610,6 @@ test('the synced files carry the Status and dependency rules, and no workflow na
   const dependencies = section(triage, 'Dependencies');
   assert.match(dependencies, /blocked-by relationship on the issue that waits/);
   assert.ok(
-    dependencies.includes(`.agents/skills/implement/references/delivery.md`),
+    dependencies.includes(`.agents/skills/ac-implement/references/delivery.md`),
   );
 });

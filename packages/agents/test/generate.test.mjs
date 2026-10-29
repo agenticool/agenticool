@@ -61,7 +61,7 @@ test('substitute resolves every placeholder and feature section', () => {
     /Unknown placeholder: nope/,
   );
   assert.equal(substitute('a \\{{label}} b', policy), 'a {{label}} b');
-  // Generated names carry no prefix, so neither does any source.
+  // The ac- prefix is part of each shared source name, not a placeholder.
   assert.throws(
     () => substitute('{{prefix}}implement', policy),
     /Unknown placeholder: prefix/,
@@ -82,14 +82,14 @@ test('substitute resolves every placeholder and feature section', () => {
 
 test('the security reviewer names the account checks the binding lists', () => {
   const source = readFileSync(
-    join(SOURCES, 'roles/security-reviewer.md'),
+    join(SOURCES, 'roles/ac-security-reviewer.md'),
     'utf8',
   );
   /** @param {Record<string, any>} extra */
   const rendered = (extra) =>
     renderRole(
       { ...other, binding: { ...other.binding, ...extra } },
-      'security-reviewer',
+      'ac-security-reviewer',
       source,
       'claude',
     );
@@ -142,13 +142,13 @@ test('placeholder sections keep their content only for a non-empty value', () =>
 test('generated output carries no unresolved placeholder and follows the binding', () => {
   for (const [path, content] of render(FIXTURE)) {
     // The maintainer skill documents the placeholders literally.
-    if (!path.includes(`/agent-config/`))
+    if (!path.includes(`/ac-agent-config/`))
       assert.doesNotMatch(content, /\{\{/, path);
     if (!/^\.agents\/[^/]+\.md$/.test(path))
       assert.ok(path.includes(`/`), path);
   }
-  const resolved = resolve(other, { tool: 'claude', role: 'implementer' });
-  assert.equal(resolved.spawn.subagent_type, 'implementer');
+  const resolved = resolve(other, { tool: 'claude', role: 'ac-implementer' });
+  assert.equal(resolved.spawn.subagent_type, 'ac-implementer');
 });
 
 const source = `---
@@ -184,7 +184,7 @@ test('tool-only blocks render for one tool and vanish for the other', () => {
 
 test('a plain frontmatter value containing " #" is rejected, not truncated', () => {
   const truncated = `---
-name: implement
+name: ac-implement
 description: Use for "implement #N" or an issue URL.
 ---
 Body
@@ -308,14 +308,14 @@ test('every role and workflow renders for both tools with matching bodies', () =
     assert.ok(names.includes(`.codex/agents/${role}.toml`), role);
   }
   for (const skill of [
-    'agent-config',
-    'implement',
-    'create-github-issue',
-    'spec-to-issues',
-    'review-code',
-    'review-security',
-    'plain-language',
-    'stack',
+    'ac-agent-config',
+    'ac-implement',
+    'ac-create-github-issue',
+    'ac-spec-to-issues',
+    'ac-review-code',
+    'ac-review-security',
+    'ac-plain-language',
+    'ac-stack',
   ]) {
     assert.ok(names.includes(`.claude/skills/${skill}/SKILL.md`), skill);
     assert.ok(names.includes(`.agents/skills/${skill}/SKILL.md`), skill);
@@ -327,10 +327,10 @@ test('every role and workflow renders for both tools with matching bodies', () =
   // Shared references are copied into both skills byte for byte.
   assert.equal(
     files.get(
-      `.claude/skills/create-github-issue/references/github-operations.md`,
+      `.claude/skills/ac-create-github-issue/references/github-operations.md`,
     ),
     files.get(
-      `.agents/skills/create-github-issue/references/github-operations.md`,
+      `.agents/skills/ac-create-github-issue/references/github-operations.md`,
     ),
   );
   // Tool-only blocks aside, the two renderings of a source are the same text:
@@ -362,6 +362,32 @@ function sharedLines(body) {
     .split('\n')
     .filter((line) => line.trim());
 }
+
+test('shared agents and skills carry the ac- prefix and nothing routes to an unprefixed one', () => {
+  const files = render(FIXTURE);
+  const names = new Set();
+  for (const path of files.keys()) {
+    const match = path.match(
+      /^\.(?:claude|codex)\/agents\/([^/.]+)\.|^\.(?:claude|agents)\/skills\/([^/]+)\//,
+    );
+    if (match) names.add(match[1] ?? match[2]);
+  }
+  assert.ok(names.size > 0);
+  for (const name of names) assert.match(name, /^ac-/, name);
+  const bare = [...names].map((name) => name.slice(3)).join('|');
+  const route = new RegExp(
+    `(?:[/$]|_type: |--role |role=)(?:${bare})(?![\\w-])|\`(?:${bare})\``,
+  );
+  // The request keyword `implementer` and the filing state directory are not routes.
+  for (const [path, content] of files)
+    assert.doesNotMatch(
+      content
+        .replaceAll('`implementer` prefixes', '')
+        .replaceAll('state}/spec-to-issues/', ''),
+      route,
+      path,
+    );
+});
 
 test('include inserts a shared source and rejects an unknown one', () => {
   const includes = mkdtempSync(join(tmpdir(), 'agenticool-includes-'));
@@ -444,17 +470,17 @@ test('the review packet has one source that the reviewer, the delivery procedure
   ])
     assert.ok(packet.includes(field), field);
   for (const path of [
-    `.claude/agents/code-reviewer.md`,
-    `.codex/agents/code-reviewer.toml`,
-    ...inBoth('implement/references/delivery.md'),
-    ...inBoth('review-code/SKILL.md'),
+    `.claude/agents/ac-code-reviewer.md`,
+    `.codex/agents/ac-code-reviewer.toml`,
+    ...inBoth('ac-implement/references/delivery.md'),
+    ...inBoth('ac-review-code/SKILL.md'),
   ])
     assert.ok(files.get(path)?.includes(packet), path);
   // No source restates the fields, so the copies cannot drift apart.
   for (const path of [
-    'roles/code-reviewer.md',
-    'workflows/implement/references/delivery.md',
-    'workflows/review-code.md',
+    'roles/ac-code-reviewer.md',
+    'workflows/ac-implement/references/delivery.md',
+    'workflows/ac-review-code.md',
   ]) {
     const text = readFileSync(join(SOURCES, path), 'utf8');
     assert.match(text, /\{\{> review-packet\}\}/, path);
@@ -576,10 +602,10 @@ test('a policy with only the project and features generates and syncs a complete
   assert.deepEqual(check(base), []);
   assert.deepEqual(syncCheck(base), []);
   const implementer = readFileSync(
-    join(base, '.claude/agents/implementer.md'),
+    join(base, '.claude/agents/ac-implementer.md'),
     'utf8',
   );
-  assert.match(implementer, /^name: implementer$/m);
+  assert.match(implementer, /^name: ac-implementer$/m);
   assert.match(
     implementer,
     new RegExp(
@@ -590,30 +616,63 @@ test('a policy with only the project and features generates and syncs a complete
   assert.match(implementer, /inside `acme\/widgets`/);
   assert.match(
     readFileSync(
-      join(base, '.agents/skills/implement/agents/openai.yaml'),
+      join(base, '.agents/skills/ac-implement/agents/openai.yaml'),
       'utf8',
     ),
     /display_name: 'widgets: Implement'/,
   );
 });
 
-test('a local role or workflow with a shared name fails generation', () => {
-  const role = consumer(policy, {
-    '.agents/local/roles/implementer.md': source.replace(
-      'name: sample',
-      'name: implementer',
+test('a local role or workflow may take an unprefixed shared name but never the ac- prefix', () => {
+  const role = consumer(
+    { ...policy, roles: { ...policy.roles, 'ac-sample': 'code-review' } },
+    {
+      '.agents/local/roles/ac-sample.md': source.replace(
+        'name: sample',
+        'name: ac-sample',
+      ),
+    },
+  );
+  assert.throws(
+    () => render(role),
+    /Local role ac-sample in \.agents\/local\/roles uses the ac- prefix reserved for shared ones; rename it/,
+  );
+  const workflow = consumer(policy, {
+    '.agents/local/workflows/ac-implement.md': flow.replace(
+      'flow',
+      'ac-implement',
     ),
   });
   assert.throws(
-    () => render(role),
-    /Local role implementer in \.agents\/local\/roles has the name of a shared one/,
-  );
-  const workflow = consumer(policy, {
-    '.agents/local/workflows/implement.md': flow.replace('flow', 'implement'),
-  });
-  assert.throws(
     () => generate(workflow),
-    /Local workflow implement in \.agents\/local\/workflows has the name of a shared one/,
+    /Local workflow ac-implement in \.agents\/local\/workflows uses the ac- prefix/,
+  );
+  // Without the prefix, a local name beside a shared one is the repository's own.
+  const files = render(
+    consumer(
+      { ...policy, roles: { ...policy.roles, implementer: 'code-review' } },
+      {
+        '.agents/local/roles/implementer.md': source.replace(
+          'name: sample',
+          'name: implementer',
+        ),
+        '.agents/local/workflows/implement.md': flow.replace(
+          'flow',
+          'implement',
+        ),
+      },
+    ),
+  );
+  for (const path of [
+    '.claude/agents/implementer.md',
+    '.claude/agents/ac-implementer.md',
+    '.claude/skills/implement/SKILL.md',
+    '.claude/skills/ac-implement/SKILL.md',
+  ])
+    assert.ok(files.has(path), path);
+  assert.match(
+    files.get('.claude/skills/implement/SKILL.md') ?? '',
+    /Generated from \.agents\/local\/workflows\/implement\.md/,
   );
 });
 
@@ -656,7 +715,7 @@ test('the shared rules land in .agents with the binding resolved', () => {
     '.agents/worktree-isolation.md',
   ]);
   const groups = String(files.get('.agents/independence-groups.md'));
-  assert.match(groups, /^Only `issue-triager` forms independence groups/m);
+  assert.match(groups, /^Only `ac-issue-triager` forms independence groups/m);
   assert.match(groups, /^<!-- independence-groups -->$/m);
   assert.match(
     String(files.get('.agents/issue-creation.md')),
@@ -666,12 +725,12 @@ test('the shared rules land in .agents with the binding resolved', () => {
 
 test('generate refuses to overwrite an agent or skill it did not generate', () => {
   for (const [path, target] of [
-    ['.claude/agents/implementer.md', '.claude/agents/implementer.md'],
-    ['.codex/agents/implementer.toml', '.codex/agents/implementer.toml'],
-    ['.claude/skills/implement/SKILL.md', '.claude/skills/implement'],
-    ['.agents/skills/stack/SKILL.md', '.agents/skills/stack'],
+    ['.claude/agents/ac-implementer.md', '.claude/agents/ac-implementer.md'],
+    ['.codex/agents/ac-implementer.toml', '.codex/agents/ac-implementer.toml'],
+    ['.claude/skills/ac-implement/SKILL.md', '.claude/skills/ac-implement'],
+    ['.agents/skills/ac-stack/SKILL.md', '.agents/skills/ac-stack'],
     // A skill directory without a SKILL.md is the repository's own too.
-    ['.agents/skills/review-code/notes.md', '.agents/skills/review-code'],
+    ['.agents/skills/ac-review-code/notes.md', '.agents/skills/ac-review-code'],
   ]) {
     const base = consumer(policy, { [path]: 'mine' });
     assert.throws(

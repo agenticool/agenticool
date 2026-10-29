@@ -25,7 +25,7 @@ const report = (verdict, pair = `${BASE}..${HEAD}`) =>
     'Acceptance: criterion one met',
     'Findings: high | scripts/x.mjs:1 | problem | fix',
     'Limits: tests read, not run.',
-    'Requested settings: Policy: tool=claude role=code-reviewer model=opus effort=high (model: policy, effort: policy)',
+    'Requested settings: Policy: tool=claude role=ac-code-reviewer model=opus effort=high (model: policy, effort: policy)',
   ].join('\n');
 
 // A `gh api --include` failure: the status line and GitHub's JSON body on

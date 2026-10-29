@@ -75,10 +75,10 @@
     }
   },
   "roles": {
-    "issue-triager": "issue-triage",
-    "implementer": "implementation",
-    "code-reviewer": "code-review",
-    "security-reviewer": "security-review"
+    "ac-issue-triager": "issue-triage",
+    "ac-implementer": "implementation",
+    "ac-code-reviewer": "code-review",
+    "ac-security-reviewer": "security-review"
   },
   "supported": {
     "claude": {

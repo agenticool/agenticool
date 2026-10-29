@@ -4,14 +4,14 @@ Version-controlled agents and skills under `.claude/agents/` and `.claude/skills
 
 | Request | Claude Code | Codex | Role it dispatches |
 | --- | --- | --- | --- |
-| `implement #N`, an issue URL, or a PR URL | `/implement` | `$implement` | `implementer` per leaf or rework (`inline` keeps a small one here); `code-reviewer` for the pre-PR gate |
-| Build, link, rebase, or sync stacked branches during delivery | `/stack` | `$stack` | none; the agent that created the worktree runs it |
-| File or draft issues | `/create-github-issue` | `$create-github-issue` | none by default; `issue-triager` (read-only) when a batch needs independent judgment |
-| File a specification's delivery plan as a root container, epics, and leaves | `/spec-to-issues` | `$spec-to-issues` | `issue-triager` (read-only) for independence groups only |
-| Review a pushed branch or PR | `/review-code` | `$review-code` | `code-reviewer` (read-only, reports to you; the skill posts the report to a target PR) |
-| Security review, only when a person asks | `/review-security` | `$review-security` | `security-reviewer` (read-only) |
-| Write a PR body, issue body, comment, or doc | `/plain-language` | `$plain-language` | none |
-| Change, add, or regenerate these agents and skills | `/agent-config` | `$agent-config` | none; edits the policy or local sources, regenerates both tools, verifies |
+| `implement #N`, an issue URL, or a PR URL | `/ac-implement` | `$ac-implement` | `ac-implementer` per leaf or rework (`inline` keeps a small one here); `ac-code-reviewer` for the pre-PR gate |
+| Build, link, rebase, or sync stacked branches during delivery | `/ac-stack` | `$ac-stack` | none; the agent that created the worktree runs it |
+| File or draft issues | `/ac-create-github-issue` | `$ac-create-github-issue` | none by default; `ac-issue-triager` (read-only) when a batch needs independent judgment |
+| File a specification's delivery plan as a root container, epics, and leaves | `/ac-spec-to-issues` | `$ac-spec-to-issues` | `ac-issue-triager` (read-only) for independence groups only |
+| Review a pushed branch or PR | `/ac-review-code` | `$ac-review-code` | `ac-code-reviewer` (read-only, reports to you; the skill posts the report to a target PR) |
+| Security review, only when a person asks | `/ac-review-security` | `$ac-review-security` | `ac-security-reviewer` (read-only) |
+| Write a PR body, issue body, comment, or doc | `/ac-plain-language` | `$ac-plain-language` | none |
+| Change, add, or regenerate these agents and skills | `/ac-agent-config` | `$ac-agent-config` | none; edits the policy or local sources, regenerates both tools, verifies |
 
-- Delivery and handoffs: [the implement workflow](.agents/skills/implement/SKILL.md) owns dispatch, its [dependency queue](.agents/skills/implement/references/queue.md) owns containers and the parallel exception, and [leaf delivery](.agents/skills/implement/references/delivery.md) owns the pre-PR reviewer spawn. Only `issue-triager` forms independence groups, under `.agents/independence-groups.md`. No automatic flow spawns `security-reviewer`.
+- Delivery and handoffs: [the ac-implement workflow](.agents/skills/ac-implement/SKILL.md) owns dispatch, its [dependency queue](.agents/skills/ac-implement/references/queue.md) owns containers and the parallel exception, and [leaf delivery](.agents/skills/ac-implement/references/delivery.md) owns the pre-PR reviewer spawn. Only `ac-issue-triager` forms independence groups, under `.agents/independence-groups.md`. No automatic flow spawns `ac-security-reviewer`.
 - Model and effort: the packages ship the model and effort for each role, per tool, and the implementation effort rubric, and `.agents/policy.json` may override them. Every dispatcher runs `npx agenticool-agents resolve --tool <claude|codex> --role <role>` and passes the result explicitly when it spawns; it never inherits a session or contributor default. An explicit `model <name>` or `effort <level>` in the request overrides only that setting, for that task and the handoffs it names (`reviewer effort max`), and changes nothing on disk; unsupported values fail. Each agent labels the dispatched `Policy:` line `Requested settings:`, including overrides, and omits model self-identification and runtime-verification commentary. `CLAUDE_CODE_EFFORT_LEVEL` and Codex agent file fields can silently override requested settings.

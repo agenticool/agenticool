@@ -7,7 +7,9 @@
 // `binding` (project, board documents, and feature flags), the origin remote
 // names the repository, and every `{{placeholder}}` and
 // `{{#feature}}...{{/feature}}` section in a source resolves against them.
-// Generated names carry no repository prefix.
+// Shared roles and workflows carry the fixed `ac-` prefix in their names, so
+// they never collide with a tool's built-in commands or a repository's own
+// agents and skills; local sources keep the names the repository gives them.
 import {
   existsSync,
   mkdirSync,
@@ -39,6 +41,7 @@ const SHARED = {
   workflows: join(SOURCES, 'workflows'),
   includes: join(SOURCES, 'includes'),
 };
+const SHARED_PREFIX = 'ac-';
 // How a generated header names a shared source.
 const SHARED_LABEL = '@agenticool/agents/sources';
 const OUTPUTS = {
@@ -314,7 +317,8 @@ function listFiles(directory) {
 }
 
 // Shared sources plus the consumer's local ones of one kind. A local source
-// may add a role or workflow but never replace a shared one.
+// may add a role or workflow but never take the prefix reserved for shared
+// ones, so it can never replace one.
 /**
  * @param {string} base
  * @param {'roles' | 'workflows'} kind
@@ -329,9 +333,9 @@ function sources(base, kind, local) {
       label: `${SHARED_LABEL}/${kind}`,
     });
   for (const name of listSources(join(base, local))) {
-    if (found.has(name))
+    if (name.startsWith(SHARED_PREFIX))
       throw new Error(
-        `Local ${kind.slice(0, -1)} ${name} in ${local} has the name of a shared one; rename it`,
+        `Local ${kind.slice(0, -1)} ${name} in ${local} uses the ${SHARED_PREFIX} prefix reserved for shared ones; rename it`,
       );
     found.set(name, { directory: join(base, local), label: local });
   }
