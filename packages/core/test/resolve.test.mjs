@@ -84,8 +84,8 @@ test('the binding resolves every placeholder', () => {
 });
 
 test('spawn parameters name the role without a repository prefix', () => {
-  const resolved = resolve(other, { tool: 'claude', role: 'implementer' });
-  assert.equal(resolved.spawn.subagent_type, 'implementer');
+  const resolved = resolve(other, { tool: 'claude', role: 'ac-implementer' });
+  assert.equal(resolved.spawn.subagent_type, 'ac-implementer');
 });
 
 test('every role and capability resolves to a supported setting for both tools', () => {
@@ -125,10 +125,10 @@ test('capabilities have explicit, differentiated policies per tool', () => {
 });
 
 test('a prompt override replaces only the named setting', () => {
-  const base = resolve(policy, { tool: 'claude', role: 'implementer' });
+  const base = resolve(policy, { tool: 'claude', role: 'ac-implementer' });
   const modelOnly = resolve(policy, {
     tool: 'claude',
-    role: 'implementer',
+    role: 'ac-implementer',
     model: 'sonnet',
   });
   assert.equal(modelOnly.model, 'sonnet');
@@ -136,7 +136,7 @@ test('a prompt override replaces only the named setting', () => {
   assert.deepEqual(modelOnly.source, { model: 'override', effort: 'policy' });
   const effortOnly = resolve(policy, {
     tool: 'codex',
-    role: 'code-reviewer',
+    role: 'ac-code-reviewer',
     effort: 'xhigh',
   });
   assert.equal(
@@ -147,12 +147,12 @@ test('a prompt override replaces only the named setting', () => {
   assert.deepEqual(effortOnly.source, { model: 'policy', effort: 'override' });
   const both = resolve(policy, {
     tool: 'codex',
-    role: 'implementer',
+    role: 'ac-implementer',
     model: 'gpt-6-sol',
     effort: 'ultra',
   });
   assert.deepEqual(both.spawn, {
-    agent_type: 'implementer',
+    agent_type: 'ac-implementer',
     model: 'gpt-6-sol',
     reasoning_effort: 'ultra',
     fork_turns: 'none',
@@ -160,14 +160,20 @@ test('a prompt override replaces only the named setting', () => {
 });
 
 test('spawn parameters use each tool vocabulary and the role name', () => {
-  const claude = resolve(policy, { tool: 'claude', role: 'security-reviewer' });
+  const claude = resolve(policy, {
+    tool: 'claude',
+    role: 'ac-security-reviewer',
+  });
   assert.deepEqual(claude.spawn, {
-    subagent_type: 'security-reviewer',
+    subagent_type: 'ac-security-reviewer',
     model: claude.model,
     effort: claude.effort,
   });
-  const codex = resolve(policy, { tool: 'codex', role: 'security-reviewer' });
-  assert.equal(codex.spawn.agent_type, 'security-reviewer');
+  const codex = resolve(policy, {
+    tool: 'codex',
+    role: 'ac-security-reviewer',
+  });
+  assert.equal(codex.spawn.agent_type, 'ac-security-reviewer');
   assert.equal(codex.spawn.reasoning_effort, codex.effort);
   assert.equal(codex.spawn.fork_turns, 'none');
   assert.equal(
@@ -182,33 +188,37 @@ test('unsupported models and efforts fail instead of falling back', () => {
     () =>
       resolve(policy, {
         tool: 'claude',
-        role: 'implementer',
+        role: 'ac-implementer',
         model: 'gpt-6-luna',
       }),
     /Unsupported claude model "gpt-6-luna"/,
   );
   assert.throws(
     () =>
-      resolve(policy, { tool: 'codex', role: 'implementer', model: 'opus' }),
+      resolve(policy, { tool: 'codex', role: 'ac-implementer', model: 'opus' }),
     /Unsupported codex model "opus"/,
   );
   assert.throws(
     () =>
-      resolve(policy, { tool: 'claude', role: 'implementer', effort: 'ultra' }),
+      resolve(policy, {
+        tool: 'claude',
+        role: 'ac-implementer',
+        effort: 'ultra',
+      }),
     /Unsupported claude effort "ultra"/,
   );
   assert.throws(
     () =>
       resolve(policy, {
         tool: 'codex',
-        role: 'implementer',
+        role: 'ac-implementer',
         model: 'gpt-6-luna',
         effort: 'ultra',
       }),
     /Unsupported codex effort "ultra" for model "gpt-6-luna"/,
   );
   assert.throws(
-    () => resolve(policy, { tool: 'cursor', role: 'implementer' }),
+    () => resolve(policy, { tool: 'cursor', role: 'ac-implementer' }),
     /Unknown tool/,
   );
   assert.throws(() => resolve(policy), /Unknown tool/);
@@ -225,7 +235,7 @@ test('unsupported models and efforts fail instead of falling back', () => {
 test('a full Claude model ID is accepted with the shared effort levels', () => {
   const resolved = resolve(policy, {
     tool: 'claude',
-    role: 'code-reviewer',
+    role: 'ac-code-reviewer',
     model: 'claude-opus-5-5',
     effort: 'max',
   });
@@ -234,7 +244,7 @@ test('a full Claude model ID is accepted with the shared effort levels', () => {
     () =>
       resolve(policy, {
         tool: 'claude',
-        role: 'code-reviewer',
+        role: 'ac-code-reviewer',
         model: 'gpt-x',
       }),
     /Unsupported claude model/,
@@ -243,8 +253,8 @@ test('a full Claude model ID is accepted with the shared effort levels', () => {
 
 test('implementation is medium while every review dispatch has its own high settings', () => {
   for (const tool of TOOLS) {
-    const implementer = resolve(policy, { tool, role: 'implementer' });
-    const reviewer = resolve(policy, { tool, role: 'code-reviewer' });
+    const implementer = resolve(policy, { tool, role: 'ac-implementer' });
+    const reviewer = resolve(policy, { tool, role: 'ac-code-reviewer' });
     assert.equal(implementer.effort, 'medium');
     assert.equal(reviewer.effort, 'high');
     assert.equal(

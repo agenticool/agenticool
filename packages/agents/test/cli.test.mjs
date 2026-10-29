@@ -98,7 +98,7 @@ test('resolve prints the role policy as JSON', () => {
     '--tool',
     'codex',
     '--role',
-    'code-reviewer',
+    'ac-code-reviewer',
     '--effort',
     'xhigh',
   ]);
@@ -107,7 +107,7 @@ test('resolve prints the role policy as JSON', () => {
   assert.equal(resolved.model, policy.capabilities['code-review'].codex.model);
   assert.equal(resolved.effort, 'xhigh');
   assert.deepEqual(resolved.source, { model: 'policy', effort: 'override' });
-  assert.equal(resolved.spawn.agent_type, `code-reviewer`);
+  assert.equal(resolved.spawn.agent_type, `ac-code-reviewer`);
   const capability = JSON.parse(
     capture(['resolve', '--tool', 'claude', '--capability', 'issue-creation'])
       .stdout,
@@ -126,7 +126,7 @@ test('generate, sync, and check work in the consumer repository', () => {
   const generated = capture(['generate'], base);
   assert.equal(generated.status, 0);
   assert.ok(
-    generated.stdout.split('\n').includes(`.claude/agents/implementer.md`),
+    generated.stdout.split('\n').includes(`.claude/agents/ac-implementer.md`),
   );
   assert.equal(capture(['check'], base).status, 1);
   assert.equal(capture(['sync'], base).status, 0);

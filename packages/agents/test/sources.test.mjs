@@ -35,7 +35,7 @@ const rendered = {
 
 test('caller skills relay the agent result verbatim in both tools', () => {
   const files = rendered;
-  for (const skill of ['implement', 'review-code', 'review-security'])
+  for (const skill of ['ac-implement', 'ac-review-code', 'ac-review-security'])
     for (const path of [
       `.claude/skills/${skill}/SKILL.md`,
       `.agents/skills/${skill}/SKILL.md`,
@@ -67,17 +67,17 @@ test('every role reports its requested settings in both tools', () => {
 // The leaf delivery procedure that the main thread and an isolated
 // implementer both follow, in each tool's package.
 const DELIVERY = [
-  `.claude/skills/implement/references/delivery.md`,
-  `.agents/skills/implement/references/delivery.md`,
+  `.claude/skills/ac-implement/references/delivery.md`,
+  `.agents/skills/ac-implement/references/delivery.md`,
 ];
 const QUEUE = DELIVERY.map((path) => path.replace('delivery.md', 'queue.md'));
 const IMPLEMENT = [
-  `.claude/skills/implement/SKILL.md`,
-  `.agents/skills/implement/SKILL.md`,
+  `.claude/skills/ac-implement/SKILL.md`,
+  `.agents/skills/ac-implement/SKILL.md`,
 ];
 const STACK = [
-  `.claude/skills/stack/SKILL.md`,
-  `.agents/skills/stack/SKILL.md`,
+  `.claude/skills/ac-stack/SKILL.md`,
+  `.agents/skills/ac-stack/SKILL.md`,
 ];
 
 test('the delivery owner sends the reviewer its own resolved policy line', () => {
@@ -88,7 +88,7 @@ test('the delivery owner sends the reviewer its own resolved policy line', () =>
         files.get(path),
         'review_mode=pre_pr',
         'resolved `Policy:` line',
-        'role=code-reviewer',
+        'role=ac-code-reviewer',
       ),
       `${path} pre-PR packet must carry the reviewer's resolved Policy: line`,
     );
@@ -123,10 +123,10 @@ test('the delivery owner never sets In review and reports the state as read', ()
 
 test('removed coordination roles cannot be selected through any entry point', () => {
   assert.deepEqual(Object.keys(policy.roles).sort(), [
-    'code-reviewer',
-    'implementer',
-    'issue-triager',
-    'security-reviewer',
+    'ac-code-reviewer',
+    'ac-implementer',
+    'ac-issue-triager',
+    'ac-security-reviewer',
   ]);
   for (const capability of ['orchestration', 'stack-management'])
     assert.equal(policy.capabilities[capability], undefined, capability);
@@ -203,7 +203,7 @@ test('default delivery dispatches isolated implementers and keeps the main threa
   const [claude, codex] = IMPLEMENT.map((path) =>
     section(files.get(path), 'Dispatch and continuation'),
   );
-  assert.match(claude, new RegExp(`subagent_type: implementer`));
+  assert.match(claude, new RegExp(`subagent_type: ac-implementer`));
   assert.match(claude, /`model` and `effort` explicitly copied/);
   assert.match(
     codex,
@@ -288,7 +288,7 @@ test('a container runs as a dependency queue in the owning thread', () => {
   );
   const creation = rendered.get('.agents/independence-groups.md');
   assert.ok(
-    lineWith(creation, `implement\` reads only the lines`),
+    lineWith(creation, `ac-implement\` reads only the lines`),
     'independence-groups.md must name the queue as the record reader',
   );
 });
@@ -299,18 +299,18 @@ test('the delivery owner runs stack operations itself through the shared stack s
     assert.ok(
       lineWith(
         section(files.get(path), 'Stack'),
-        `Run every stack operation yourself with the stack skill`,
+        `Run every stack operation yourself with the ac-stack skill`,
         'in the worktree you created',
       ),
       path,
     );
   assert.match(
     section(files.get(DELIVERY[0]), 'Stack'),
-    new RegExp(`Skill tool \\(\`stack\`\\)`),
+    new RegExp(`Skill tool \\(\`ac-stack\`\\)`),
   );
   assert.match(
     section(files.get(DELIVERY[1]), 'Stack'),
-    new RegExp(`\\$stack`),
+    new RegExp(`\\$ac-stack`),
   );
   for (const path of STACK) {
     const content = files.get(path);
@@ -430,7 +430,7 @@ test('independent review stays a separate fresh-context gate on mandatory paths'
         lineWith(review, 'always required', scope),
         `${path}: ${scope}`,
       );
-    assert.match(review, new RegExp(`fresh code-reviewer`));
+    assert.match(review, new RegExp(`fresh ac-code-reviewer`));
     assert.match(review, /Leave out your self-assessment/);
     assert.match(review, /exact base\/head pair/);
     assert.match(review, /After two rejected rounds, return BLOCKED/);
@@ -440,35 +440,35 @@ test('independent review stays a separate fresh-context gate on mandatory paths'
       `${path} must keep requested review separate from pre-PR review`,
     );
     assert.ok(
-      lineWith(files.get(path), /^Never:/, `security-reviewer`),
+      lineWith(files.get(path), /^Never:/, `ac-security-reviewer`),
       `${path} must never start a security review`,
     );
   }
   assert.match(
-    files.get(`.claude/skills/review-security/SKILL.md`),
+    files.get(`.claude/skills/ac-review-security/SKILL.md`),
     /^disable-model-invocation: true$/m,
   );
   assert.match(
-    files.get(`.agents/skills/review-security/agents/openai.yaml`),
+    files.get(`.agents/skills/ac-review-security/agents/openai.yaml`),
     /allow_implicit_invocation: false/,
   );
 });
 
 test('an isolated implementer follows the shared procedure and delegates nothing else', () => {
   const files = rendered;
-  const claude = files.get(`.claude/agents/implementer.md`);
-  const codex = files.get(`.codex/agents/implementer.toml`);
+  const claude = files.get(`.claude/agents/ac-implementer.md`);
+  const codex = files.get(`.codex/agents/ac-implementer.toml`);
   assert.match(claude, /^isolation: worktree$/m);
   assert.match(
     claude,
     new RegExp(
-      `git show origin/main:\\.claude/skills/implement/references/delivery\\.md`,
+      `git show origin/main:\\.claude/skills/ac-implement/references/delivery\\.md`,
     ),
   );
   assert.match(
     codex,
     new RegExp(
-      `git show origin/main:\\.agents/skills/implement/references/delivery\\.md`,
+      `git show origin/main:\\.agents/skills/ac-implement/references/delivery\\.md`,
     ),
   );
   for (const content of [claude, codex]) {
@@ -483,8 +483,8 @@ test('an isolated implementer follows the shared procedure and delegates nothing
 test('issue filing classifies inline and reserves the triager for independent judgment', () => {
   const files = rendered;
   for (const path of [
-    `.claude/skills/create-github-issue/SKILL.md`,
-    `.agents/skills/create-github-issue/SKILL.md`,
+    `.claude/skills/ac-create-github-issue/SKILL.md`,
+    `.agents/skills/ac-create-github-issue/SKILL.md`,
   ]) {
     const triage = section(files.get(path), 'Triage');
     assert.match(triage, /Classify inline by default/);
@@ -504,7 +504,7 @@ test('issue filing classifies inline and reserves the triager for independent ju
       /native parent links, then blocked-by edges, planned and triager-returned alike/,
     );
   }
-  const role = readFileSync(join(SOURCES, 'roles/issue-triager.md'), 'utf8');
+  const role = readFileSync(join(SOURCES, 'roles/ac-issue-triager.md'), 'utf8');
   for (const rule of [
     'EDGES | <waiting ref> <- <blocker ref>: <=15-word reason',
     '`EDGES | none`',
@@ -579,8 +579,8 @@ test('the README keeps the effective-model verification row', () => {
 test('review publication runs only from a manual PR review', () => {
   const files = rendered;
   for (const path of [
-    `.claude/skills/review-code/SKILL.md`,
-    `.agents/skills/review-code/SKILL.md`,
+    `.claude/skills/ac-review-code/SKILL.md`,
+    `.agents/skills/ac-review-code/SKILL.md`,
   ]) {
     const content = files.get(path);
     assert.ok(
@@ -633,8 +633,8 @@ test('review publication runs only from a manual PR review', () => {
     assert.doesNotMatch(content, /nothing in this flow writes to GitHub/, path);
   }
   for (const path of [
-    `.claude/agents/code-reviewer.md`,
-    `.codex/agents/code-reviewer.toml`,
+    `.claude/agents/ac-code-reviewer.md`,
+    `.codex/agents/ac-code-reviewer.toml`,
   ]) {
     const content = files.get(path);
     assert.ok(
@@ -650,7 +650,7 @@ test('review publication runs only from a manual PR review', () => {
   for (const path of DELIVERY)
     assert.ok(lineWith(files.get(path), 'review_mode=pre_pr'), path);
   for (const [path, content] of files)
-    if (!path.includes(`/review-code/`))
+    if (!path.includes(`/ac-review-code/`))
       assert.doesNotMatch(content, /publish-review/, path);
 });
 
@@ -659,10 +659,10 @@ test('review entry points share bounded packets and preserve independent coverag
   const review = rendered.get('.agents/review.md');
   for (const path of [
     ...DELIVERY,
-    `.claude/skills/review-code/SKILL.md`,
-    `.agents/skills/review-code/SKILL.md`,
-    `.claude/agents/code-reviewer.md`,
-    `.codex/agents/code-reviewer.toml`,
+    `.claude/skills/ac-review-code/SKILL.md`,
+    `.agents/skills/ac-review-code/SKILL.md`,
+    `.claude/agents/ac-code-reviewer.md`,
+    `.codex/agents/ac-code-reviewer.toml`,
   ]) {
     const content = files.get(path);
     assert.ok(content.includes('.agents/review.md'), path);
@@ -761,7 +761,7 @@ test('queue recomputes and main reads only fixed results until a blocker needs a
 
 test('specification filing runs the spec commands and asks the triager for plan-wide independence groups only', () => {
   const files = rendered;
-  for (const path of inBoth('spec-to-issues/SKILL.md')) {
+  for (const path of inBoth('ac-spec-to-issues/SKILL.md')) {
     const skill = files.get(path);
     // The packages own every rule and every body; the skill only runs them.
     assert.match(
@@ -802,7 +802,7 @@ test('specification filing runs the spec commands and asks the triager for plan-
     assert.match(groups, /scratch directory outside the repository/, path);
     assert.match(
       groups,
-      /`npx agenticool-agents resolve --tool <tool> --role issue-triager`/,
+      /`npx agenticool-agents resolve --tool <tool> --role ac-issue-triager`/,
       path,
     );
     assert.match(
@@ -852,30 +852,34 @@ test('specification filing runs the spec commands and asks the triager for plan-
     assert.ok(section(skill, 'Verify and return'), path);
   }
   assert.match(
-    files.get(`.agents/skills/spec-to-issues/SKILL.md`),
+    files.get(`.agents/skills/ac-spec-to-issues/SKILL.md`),
     new RegExp(
-      `Spawn with \`spawn_agent\`: \`agent_type: issue-triager\`[^\\n]*\`fork_turns: "none"\``,
+      `Spawn with \`spawn_agent\`: \`agent_type: ac-issue-triager\`[^\\n]*\`fork_turns: "none"\``,
     ),
   );
   assert.match(
-    files.get(`.claude/skills/spec-to-issues/SKILL.md`),
-    new RegExp(`Spawn with the Agent tool: \`subagent_type: issue-triager\``),
+    files.get(`.claude/skills/ac-spec-to-issues/SKILL.md`),
+    new RegExp(
+      `Spawn with the Agent tool: \`subagent_type: ac-issue-triager\``,
+    ),
   );
   // The package docs are the only copy of the format, state, and REST rules.
   assert.deepEqual(
-    [...files.keys()].filter((path) => path.includes(`spec-to-issues/`)).sort(),
+    [...files.keys()]
+      .filter((path) => path.includes(`ac-spec-to-issues/`))
+      .sort(),
     [
-      `.agents/skills/spec-to-issues/SKILL.md`,
-      `.agents/skills/spec-to-issues/agents/openai.yaml`,
-      `.claude/skills/spec-to-issues/SKILL.md`,
+      `.agents/skills/ac-spec-to-issues/SKILL.md`,
+      `.agents/skills/ac-spec-to-issues/agents/openai.yaml`,
+      `.claude/skills/ac-spec-to-issues/SKILL.md`,
     ],
   );
 });
 
 test('implementation is medium while every review dispatch has its own high settings', () => {
   for (const tool of TOOLS) {
-    const implementer = resolve(policy, { tool, role: 'implementer' });
-    const reviewer = resolve(policy, { tool, role: 'code-reviewer' });
+    const implementer = resolve(policy, { tool, role: 'ac-implementer' });
+    const reviewer = resolve(policy, { tool, role: 'ac-code-reviewer' });
     assert.equal(implementer.effort, 'medium');
     assert.equal(reviewer.effort, 'high');
     assert.equal(
@@ -895,7 +899,7 @@ test('implementation is medium while every review dispatch has its own high sett
   const files = rendered;
   for (const path of DELIVERY) {
     const review = section(files.get(path), 'Pre-PR review');
-    assert.match(review, /--role code-reviewer/);
+    assert.match(review, /--role ac-code-reviewer/);
     if (path.startsWith('.claude'))
       assert.match(review, /`model` and `effort` explicitly/);
     else {
