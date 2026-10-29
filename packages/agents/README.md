@@ -8,7 +8,7 @@ Shared Claude Code and Codex agents and skills, the generator that renders them 
 
 | Command | What it does |
 | --- | --- |
-| `generate` | Renders every shared and local source for both tools and the shared rules, writes the output into the repository, removes owned output that no source produces any more, and prints every path it owns |
+| `generate` | Renders every shared and local source for both tools and the shared rules, writes the output into the repository, removes owned output that no source produces any more, refuses to overwrite an agent or skill at a generated path that it did not generate, and prints every path it owns |
 | `check` | Exits 1 and lists every generated file that is missing, stale, or orphaned, and every synced file that differs from what `sync` writes; writes nothing |
 | `sync` | Writes the repository files listed in [Synced files](#synced-files) and prints every synced path |
 | `resolve --tool <claude\|codex> (--role <role> \| --capability <name>) [--model <model>] [--effort <effort>]` | Prints the resolved model, effort, and spawn parameters as JSON; unsupported values exit 1 |
@@ -36,7 +36,6 @@ Unknown or missing commands exit 2 with the help text; any other usage error exi
 | `renderSync(base?)` | Every synced file, as a `Map` from repository-relative path to the content `sync` writes, given the files already in the repository |
 | `replaceBlock(text, name, content, comment, path)` | Replaces one marked block in a file's text, or appends it when the file has none; fails on unbalanced markers |
 | `AGENTS_SECTIONS`, `AGENT_LOCAL_FILES`, `BROWSER_MCP` | The shared `AGENTS.md` sections in append order, the `.gitignore` entries, and the browser MCP servers and their `npx` arguments |
-| `DEFAULTS`, `withDefaults(policy)` | The shipped model, effort, role, and rubric defaults (`defaults.json`, also exported as `@agenticool/agents/defaults.json`), and the function that fills a loaded policy from them |
 | `main(args, base?)` | The command line, returning the exit code |
 
 ## Config keys
@@ -55,8 +54,8 @@ The generator reads `.agents/policy.json` through `@agenticool/core` and require
 | Key | Use |
 | --- | --- |
 | `binding.*` | Placeholder values and feature sections in every source; `label` defaults to the repository name and `docs` to `ISSUE_TRIAGE.md` and `AGENTS.md` |
-| `capabilities`, `supported` | Optional. The model and effort each role and skill resolves to, and the values each tool accepts; merged by capability and by tool over `defaults.json` |
-| `roles` | Optional. Roles mapped to a capability, merged by name over `defaults.json`; every role, shared and local, needs a source and every source needs an entry |
+| `capabilities`, `supported` | Optional. The model and effort each role and skill resolves to, and the values each tool accepts; merged by capability and by tool over the defaults that ship in `@agenticool/core` |
+| `roles` | Optional. Roles mapped to a capability, merged by name over the shipped defaults; every role, shared and local, needs a source and every source needs an entry |
 | `implementationEffort` | Optional. Replaces the shipped rubric; read by the delivery sources and `agenticool-dispatch`, not by the generator |
 
 Repository-only sources always live in `.agents/local/roles` and `.agents/local/workflows`. `publish-review` and `sync` read the same binding. `sync` also reads:
@@ -116,7 +115,7 @@ The shipped roles are `code-reviewer`, `implementer`, `issue-triager`, and `secu
 | `.agents/skills/<skill>/` | Codex skills (`SKILL.md`, `agents/openai.yaml`) |
 | `.agents/evidence.md`, `independence-groups.md`, `issue-creation.md`, `review.md`, `worktree-isolation.md` | The shared rules, which roles and skills in both tools read by these paths |
 
-Generated agents and skills carry a header naming their source, and the shared rules are copies of `sources/*.md` with placeholders resolved. The generator owns only files that carry that header (for a skill, its `SKILL.md`), and removes those no source produces any more; a contributor's other agents and skills in the same directories stay untouched.
+Generated agents and skills carry a header naming their source, and the shared rules are copies of `sources/*.md` with placeholders resolved. The generator owns only files that carry that header (for a skill, its `SKILL.md`), and removes those no source produces any more; a contributor's other agents and skills in the same directories stay untouched. When one of them sits at a generated path, such as a personal `.claude/agents/implementer.md` or `.agents/skills/stack/`, `generate` fails and names it: rename it, or move its source into `.agents/local/`.
 
 ### Synced files
 

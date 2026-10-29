@@ -44,6 +44,12 @@ export const schema = JSON.parse(
   readFileSync(new URL('./policy.schema.json', import.meta.url), 'utf8'),
 );
 
+// The model, effort, role, and rubric defaults every repository gets.
+/** @type {Policy} */
+export const DEFAULTS = JSON.parse(
+  readFileSync(new URL('./defaults.json', import.meta.url), 'utf8'),
+);
+
 /** @type {Record<string, (value: unknown) => boolean>} */
 const TYPES = {
   object: (value) =>
@@ -133,17 +139,34 @@ export function validatePolicy(policy, { sections = [] } = {}) {
 }
 
 /**
- * Reads `<base>/.agents/policy.json` and validates it for `sections`. The
- * policy remembers `base`, whose origin remote names the repository.
+ * Fills a policy's model and effort sections from DEFAULTS. A repository's
+ * own capabilities and roles override by name, supported models by tool, and
+ * its rubric replaces the default as a whole.
+ * @param {Policy} policy
+ */
+export function withDefaults(policy) {
+  const defaults = structuredClone(DEFAULTS);
+  for (const key of ['capabilities', 'roles', 'supported'])
+    policy[key] = { ...defaults[key], ...policy[key] };
+  policy.implementationEffort ??= defaults.implementationEffort;
+  return policy;
+}
+
+/**
+ * Reads `<base>/.agents/policy.json`, validates it for `sections`, and fills
+ * in DEFAULTS. The policy remembers `base`, whose origin remote names the
+ * repository.
  * @param {string} [base]
  * @param {{ sections?: string[] }} [options]
  * @returns {Policy}
  */
 export function loadPolicy(base = process.cwd(), options = {}) {
   const policy = JSON.parse(readFileSync(join(base, POLICY_PATH), 'utf8'));
-  return Object.defineProperty(validatePolicy(policy, options), 'base', {
-    value: base,
-  });
+  return Object.defineProperty(
+    withDefaults(validatePolicy(policy, options)),
+    'base',
+    { value: base },
+  );
 }
 
 /**

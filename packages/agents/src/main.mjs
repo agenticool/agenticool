@@ -10,7 +10,6 @@ import {
   POLICY_PATH,
   resolve,
 } from '@agenticool/core';
-import { withDefaults } from './defaults.mjs';
 import { check, generate } from './generate.mjs';
 import { publishReview, ReviewNotPosted } from './review.mjs';
 import { sync, syncCheck } from './sync.mjs';
@@ -75,7 +74,7 @@ export function main(args, base = process.cwd()) {
   if (command === 'resolve') {
     if (options.role && options.capability)
       throw cliError(cli, 'Use --role or --capability, not both');
-    const policy = withDefaults(loadPolicy(base));
+    const policy = loadPolicy(base);
     const resolved = resolve(policy, {
       tool: option('tool'),
       role: option('role'),

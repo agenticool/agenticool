@@ -62,7 +62,7 @@ With `{ passthrough: true }`, a wrapper parses its own options and forwards the 
 
 | Export | What it does |
 | --- | --- |
-| `loadPolicy(base?, { sections? })` | Reads `<base>/.agents/policy.json` (`base` defaults to the working directory), validates it, fills in defaults, and requires each listed section |
+| `loadPolicy(base?, { sections? })` | Reads `<base>/.agents/policy.json` (`base` defaults to the working directory), validates it, fills in schema defaults and `DEFAULTS`, and requires each listed section |
 | `validatePolicy(policy, { sections? })` | The same validation for a parsed policy |
 | `schema`, `POLICY_PATH` | The JSON Schema object and the policy file path |
 | `repository(policy)` | `owner/name` of the repository, read once from the `origin` remote of the directory the policy was loaded from; a caller that already knows it sets `policy.repository` |
@@ -70,6 +70,7 @@ With `{ passthrough: true }`, a wrapper parses its own options and forwards the 
 | `project(policy)` | `{ owner, ownerType, number, name }` of the delivery project; `ownerType` defaults to `user` |
 | `binding(policy)` | The binding the agent sources need, with `label` (default: the repository name) and `repository` filled in, or an error naming the first missing key |
 | `placeholders(policy)` | The `{{placeholder}}` values a source may use |
+| `DEFAULTS`, `withDefaults(policy)` | The model, effort, role, and rubric defaults in `src/defaults.json`, and the merge `loadPolicy` applies: capabilities and roles by name, supported models by tool, and the rubric as a whole |
 | `TOOLS` | `['claude', 'codex']` |
 | `resolve(policy, { tool, role?, capability?, model?, effort? })` | The model, effort, and spawn parameters for a role or capability, with overrides applied one setting at a time; unsupported values throw |
 | `implementationEffort(policy, { decision?, transitions? })` | The implementation effort a recorded decision earns under the rubric |
@@ -91,7 +92,7 @@ The schema rejects unknown keys and wrong types everywhere, but requires no sect
 | `binding.features.infrastructure` | boolean, default `false` | Infrastructure sections in the agent sources |
 | `binding.features.releasePlease` | boolean, default `false` | Release pull requests get package labels |
 | `binding.features.browserMcp` | boolean, default `false` | Sync writes project MCP configuration for browser tools |
-| `capabilities.<name>` | `{ summary?, claude: { model, effort }, codex: { model, effort } }`, optional | Model and effort per tool, merged over the defaults `@agenticool/agents` ships |
+| `capabilities.<name>` | `{ summary?, claude: { model, effort }, codex: { model, effort } }`, optional | Model and effort per tool, merged over the shipped defaults |
 | `roles.<role>` | capability name, optional | The capability a role uses, merged over the shipped defaults |
 | `supported.<tool>` | `{ description?, modelIdPattern?, models: { <model>: [efforts] } }`, optional | Models and efforts each tool accepts, merged over the shipped defaults |
 | `implementationEffort` | `{ default, automaticMaximum, maximumTransitions, rules, assessmentOrder?, blockers?, nonTriggers? }`, optional | The effort rubric, replacing the shipped default; each rule lists the criteria it `requires` |

@@ -5,15 +5,13 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs",
-    "./defaults.json": "./defaults.json"
+    ".": "./src/index.mjs"
   },
   "bin": {
     "agenticool-agents": "./bin/agenticool-agents.mjs"
   },
   "files": [
     "bin",
-    "defaults.json",
     "sources",
     "src",
     "templates"

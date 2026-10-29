@@ -11,7 +11,6 @@ import {
   project as projectOf,
   repository as repositoryOf,
 } from '@agenticool/core';
-import { withDefaults } from '@agenticool/agents';
 import { closingIssues } from './closing-issues.mjs';
 
 /**
@@ -742,9 +741,7 @@ export function runQueue(argv, { api, base, worktrees = gitWorktrees } = {}) {
   const resume = /** @type {string | undefined} */ (options.resume);
   if (resume && !/^[1-9]\d*$/.test(resume))
     throw cliError(CLI, '--resume needs a positive issue number');
-  const policy = withDefaults(
-    loadPolicy(base, { sections: ['binding.project'] }),
-  );
+  const policy = loadPolicy(base, { sections: ['binding.project'] });
   const result = deliveryQueue(policy, Number(positionals[0]), {
     api,
     resume,

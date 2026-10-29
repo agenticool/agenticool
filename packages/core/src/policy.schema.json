@@ -89,7 +89,7 @@
       }
     },
     "capabilities": {
-      "description": "Model and effort per capability; merged by name over the defaults @agenticool/agents ships.",
+      "description": "Model and effort per capability; merged by name over the defaults @agenticool/core ships.",
       "type": "object",
       "additionalProperties": {
         "type": "object",

@@ -6,13 +6,13 @@ Shared, deterministic workflow tooling for GitHub repositories that use Claude C
 
 | Package | What it does |
 | --- | --- |
-| [`@agenticool/agents`](packages/agents) | Shared agents and skills with model and effort defaults, the generator, the review publisher, and the repository-file sync |
+| [`@agenticool/agents`](packages/agents) | Shared agents and skills, the generator, the review publisher, and the repository-file sync |
 | [`@agenticool/spec`](packages/spec) | Specification parsing, pre-flight rules, issue body rendering, and filing and resuming a plan as linked issues (`agenticool-spec`) |
 | [`@agenticool/dispatch`](packages/dispatch) | Delivery queue and branch names (`agenticool-dispatch`) |
 | [`@agenticool/board`](packages/board) | Project triage, Done and Inbox, containers, membership, and PR status and metadata (`agenticool-board`) |
-| [`@agenticool/core`](packages/core) | Internal: GitHub calls through `gh api`, argument parsing, and policy loading; no stable public API |
+| [`@agenticool/core`](packages/core) | Internal: GitHub calls through `gh api`, argument parsing, and policy loading with the model, effort, role, and rubric defaults; no stable public API |
 
-A repository's `.agents/policy.json` needs only `binding.project`; the repository comes from the `origin` remote, and the board workflows read the Projects token from the `AGENTICOOL_PROJECT_TOKEN` secret.
+A repository's `.agents/policy.json` needs only `binding.project`. Model, effort, role, and rubric defaults ship with the packages, and a repository may override them there. The repository comes from the `origin` remote, and the board workflows read the Projects token from the `AGENTICOOL_PROJECT_TOKEN` secret.
 
 ## Pull request checks
 

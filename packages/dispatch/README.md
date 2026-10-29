@@ -65,4 +65,4 @@ The repository whose issues, pull requests, and branches `queue` and `branch-nam
 | Key | Meaning |
 | --- | --- |
 | `binding.project` | Project whose `Status`, `Priority`, and `Size` fields are read; `ownerType: "organization"` reads it under `orgs/` |
-| `implementationEffort` | Optional effort rubric for recorded decisions; defaults to the one `@agenticool/agents` ships |
+| `implementationEffort` | Optional effort rubric for recorded decisions; defaults to the one that ships in `@agenticool/core` |

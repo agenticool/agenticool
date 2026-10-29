@@ -6,7 +6,6 @@ import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { withDefaults } from '@agenticool/agents';
 import { loadPolicy } from '@agenticool/core';
 
 /** @typedef {Record<string, any>} Policy */
@@ -36,9 +35,9 @@ export const COMMITTED = fileURLToPath(
 // origin remote names the repository.
 export const FIXTURE = clone('samlevin/prismatic');
 cpSync(COMMITTED, FIXTURE, { recursive: true });
-export const policy = withDefaults(
-  Object.assign(loadPolicy(FIXTURE), { repository: 'samlevin/prismatic' }),
-);
+export const policy = Object.assign(loadPolicy(FIXTURE), {
+  repository: 'samlevin/prismatic',
+});
 // The same policy bound to another repository with no CI-applied infrastructure.
 /** @type {Policy} */
 export const other = {

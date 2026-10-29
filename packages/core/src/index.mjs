@@ -14,6 +14,7 @@ export {
 export { CliError, CliHelp, cliError, defineCli, parseCli } from './cli.mjs';
 export {
   binding,
+  DEFAULTS,
   loadPolicy,
   originRepository,
   placeholders,
@@ -22,6 +23,7 @@ export {
   repository,
   schema,
   validatePolicy,
+  withDefaults,
 } from './policy.mjs';
 export { implementationEffort, resolve, TOOLS } from './resolve.mjs';
 

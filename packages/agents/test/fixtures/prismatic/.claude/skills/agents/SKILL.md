@@ -18,7 +18,7 @@ The shared roles, skills, references, and rules come from the `@agenticool/agent
 | Change | Edit |
 | --- | --- |
 | The project the workflows bind to, the display label, board documents, feature flags | `.agents/policy.json` (`binding`); the repository itself comes from the `origin` remote |
-| Model or effort for a capability, or which models and efforts a tool accepts | `.agents/policy.json` (`capabilities`, `supported`), which override the defaults `@agenticool/agents` ships |
+| Model or effort for a capability, or which models and efforts a tool accepts | `.agents/policy.json` (`capabilities`, `supported`), which override the defaults the packages ship in `@agenticool/core` |
 | Which capability a role resolves to | `.agents/policy.json` (`roles`) |
 | A shared role, skill, skill reference, or shared rule (`.agents/evidence.md`, `.agents/review.md`, and the other generated `.agents/*.md` files) | upstream in `@agenticool/agents`; never in this repository |
 | A role only this repository has: its instructions, tools, isolation, color, or Codex permissions | `.agents/local/roles/<role>.md` (frontmatter `claude:` and `codex:` keys, body shared) and a `roles` entry in `policy.json` mapping it to a capability |

@@ -7,12 +7,14 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   binding,
+  DEFAULTS,
   loadPolicy,
   originRepository,
   placeholders,
   project,
   repository,
   validatePolicy,
+  withDefaults,
 } from '@agenticool/core';
 
 /** @param {string} name */
@@ -362,4 +364,47 @@ test('the project URL and REST path follow the owner type', () => {
     placeholders(policy)['project.restPath'],
     `orgs/${owner}/projectsV2/${number}`,
   );
+});
+
+test('loading fills the model, effort, role, and rubric defaults, and a policy overrides them', () => {
+  const directory = clone('https://github.com/acme/widgets.git');
+  cpSync(join(fixture('prismatic'), '.agents'), join(directory, '.agents'), {
+    recursive: true,
+  });
+  assert.deepEqual(validatePolicy(DEFAULTS), DEFAULTS);
+  const minimal = withDefaults({ binding: {} });
+  for (const key of [
+    'capabilities',
+    'roles',
+    'supported',
+    'implementationEffort',
+  ])
+    assert.deepEqual(minimal[key], DEFAULTS[key], key);
+  const override = withDefaults({
+    capabilities: {
+      'code-review': {
+        claude: { model: 'sonnet', effort: 'low' },
+        codex: { model: 'gpt-6-luna', effort: 'low' },
+      },
+    },
+    roles: { auditor: 'code-review' },
+    supported: { codex: { models: { 'gpt-7': ['low'] } } },
+    implementationEffort: { ...DEFAULTS.implementationEffort, default: 'low' },
+  });
+  assert.equal(override.capabilities['code-review'].claude.model, 'sonnet');
+  assert.deepEqual(
+    override.capabilities.implementation,
+    DEFAULTS.capabilities.implementation,
+  );
+  assert.equal(override.roles.auditor, 'code-review');
+  assert.equal(override.roles.implementer, DEFAULTS.roles.implementer);
+  assert.deepEqual(override.supported.codex, { models: { 'gpt-7': ['low'] } });
+  assert.deepEqual(override.supported.claude, DEFAULTS.supported.claude);
+  assert.equal(override.implementationEffort.default, 'low');
+  // Defaults never leak between policies.
+  minimal.roles.implementer = 'changed';
+  assert.equal(DEFAULTS.roles.implementer, 'implementation');
+  // The prismatic policy's own capabilities win over the defaults.
+  const loaded = loadPolicy(directory);
+  assert.deepEqual(loaded.capabilities, read('prismatic').capabilities);
 });

@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { withDefaults } from '@agenticool/agents';
 import { loadPolicy } from '@agenticool/core';
 import {
   claimRecord,
@@ -32,7 +31,7 @@ execFileSync('git', [
   'https://github.com/acme-labs/widgets.git',
 ]);
 cpSync(join(fixtures, '.agents'), join(clone, '.agents'), { recursive: true });
-const policy = withDefaults(loadPolicy(clone));
+const policy = loadPolicy(clone);
 const repo = 'repos/acme-labs/widgets';
 const project = `users/${policy.binding.project.owner}/projectsV2/${policy.binding.project.number}`;
 const base = 'a'.repeat(40);
