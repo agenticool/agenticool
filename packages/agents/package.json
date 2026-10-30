@@ -1,6 +1,6 @@
 {
   "name": "@agenticool/agents",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Shared Claude Code and Codex agents and skills, the generator that renders them for a repository, the review publisher, and the sync that keeps a repository's board files and shared agent rules current.",
   "license": "MIT",
   "type": "module",
@@ -29,8 +29,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@agenticool/board": "^0.0.0",
-    "@agenticool/core": "^0.0.0",
+    "@agenticool/board": "^0.1.0",
+    "@agenticool/core": "^0.1.0",
     "yaml": "^2.9.1"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@agenticool/dispatch",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Read the delivery queue for an issue tree (order, claims, effort, independence groups, stacking) and print canonical branch names.",
   "license": "MIT",
   "type": "module",
@@ -18,7 +18,7 @@
     "node": ">=24.2"
   },
   "dependencies": {
-    "@agenticool/core": "^0.0.0"
+    "@agenticool/core": "^0.1.0"
   },
   "repository": {
     "type": "git",
