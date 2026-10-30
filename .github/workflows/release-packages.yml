@@ -54,8 +54,7 @@ jobs:
   publish-packages:
     name: Publish released packages to npm
     needs: update-release-pr
-    # Publishing stays off until npm credentials exist: set the
-    # NPM_PUBLISH_ENABLED variable to true once they do.
+    # Publishing stays off until the NPM_PUBLISH_ENABLED variable is true.
     if: needs.update-release-pr.outputs.releases_created == 'true' && vars.NPM_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -82,13 +81,11 @@ jobs:
       - name: Run checks
         run: npm run check
 
-      # NPM_TOKEN is needed only for a package's first publish: npm accepts a
-      # trusted publisher only for a package that already exists. Once every
-      # package has one, the secret can be deleted and npm uses OIDC alone.
+      # npm authenticates through trusted publishing (OIDC): each package's
+      # trusted publisher names this repository and workflow file.
       - name: Publish each released package
         env:
           PATHS_RELEASED: ${{ needs.update-release-pr.outputs.paths_released }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for path in $(node -e 'for (const p of JSON.parse(process.env.PATHS_RELEASED)) console.log(p)'); do
             npm publish --workspace "$path" --provenance --access public

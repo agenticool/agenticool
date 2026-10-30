@@ -4,6 +4,24 @@
   "include-component-in-tag": true,
   "bump-minor-pre-major": true,
   "initial-version": "0.1.0",
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    },
+    {
+      "type": "perf",
+      "section": "Performance Improvements"
+    },
+    {
+      "type": "test",
+      "section": "Tests"
+    }
+  ],
   "separate-pull-requests": false,
   "plugins": [
     {
@@ -12,19 +30,24 @@
   ],
   "packages": {
     "packages/core": {
-      "component": "core"
+      "component": "core",
+      "release-as": "0.1.1"
     },
     "packages/board": {
-      "component": "board"
+      "component": "board",
+      "release-as": "0.1.1"
     },
     "packages/dispatch": {
-      "component": "dispatch"
+      "component": "dispatch",
+      "release-as": "0.1.1"
     },
     "packages/spec": {
-      "component": "spec"
+      "component": "spec",
+      "release-as": "0.1.1"
     },
     "packages/agents": {
-      "component": "agents"
+      "component": "agents",
+      "release-as": "0.1.1"
     }
   }
 }
