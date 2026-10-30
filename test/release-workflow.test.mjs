@@ -47,9 +47,16 @@ test('the release job asks for no write permission of its own', () => {
   assert.deepEqual(workflow.permissions, { contents: 'read' });
 });
 
-test('publishing waits for created releases and NPM_PUBLISH_ENABLED', () => {
+test('staging waits for created releases or a manual list, and NPM_PUBLISH_ENABLED', () => {
   assert.equal(
     workflow.jobs['publish-packages'].if,
-    "needs.update-release-pr.outputs.releases_created == 'true' && vars.NPM_PUBLISH_ENABLED == 'true'",
+    "(needs.update-release-pr.outputs.releases_created == 'true' || inputs.stage != '') && vars.NPM_PUBLISH_ENABLED == 'true'",
   );
+  assert.equal(workflow.on.workflow_dispatch.inputs.stage.type, 'string');
+});
+
+test('packages are staged for approval, never published directly', () => {
+  const run = workflow.jobs['publish-packages'].steps.at(-1).run;
+  assert.match(run, /npm stage publish --provenance --access public/);
+  assert.doesNotMatch(run, /npm publish/);
 });
