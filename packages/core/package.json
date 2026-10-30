@@ -1,6 +1,6 @@
 {
   "name": "@agenticool/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Internal helpers for the other @agenticool packages: GitHub calls through `gh api`, argument parsing, and `.agents/policy.json` loading. No stable public API.",
   "license": "MIT",
   "type": "module",

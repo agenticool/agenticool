@@ -1,6 +1,6 @@
 {
   "name": "@agenticool/board",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Keep a GitHub Project in step with issues and pull requests: triage, Done and Inbox, containers, membership, closing-issue status, and issue metadata on pull requests.",
   "license": "MIT",
   "type": "module",
@@ -16,7 +16,7 @@
     "templates"
   ],
   "dependencies": {
-    "@agenticool/core": "^0.1.0"
+    "@agenticool/core": "^0.1.1"
   },
   "engines": {
     "node": ">=24.2"
