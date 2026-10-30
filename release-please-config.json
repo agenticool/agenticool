@@ -3,6 +3,7 @@
   "release-type": "node",
   "include-component-in-tag": true,
   "bump-minor-pre-major": true,
+  "initial-version": "0.1.0",
   "separate-pull-requests": false,
   "plugins": [
     {
@@ -17,7 +18,26 @@
       "component": "board"
     },
     "packages/dispatch": {
-      "component": "dispatch"
+      "component": "dispatch",
+      "release-as": "0.1.0",
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance Improvements"
+        },
+        {
+          "type": "refactor",
+          "section": "Code Refactoring"
+        }
+      ]
     },
     "packages/spec": {
       "component": "spec"
