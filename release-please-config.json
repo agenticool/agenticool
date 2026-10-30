@@ -19,7 +19,25 @@
     },
     "packages/dispatch": {
       "component": "dispatch",
-      "release-as": "0.1.0"
+      "release-as": "0.1.0",
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance Improvements"
+        },
+        {
+          "type": "refactor",
+          "section": "Code Refactoring"
+        }
+      ]
     },
     "packages/spec": {
       "component": "spec"
