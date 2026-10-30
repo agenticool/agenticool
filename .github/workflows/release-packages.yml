@@ -5,6 +5,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      stage:
+        description: Space-separated package paths to stage on npm again, such as packages/core packages/board
+        type: string
+        default: ''
 
 # Release Please runs only with the GitHub App token: this organization does
 # not let GITHUB_TOKEN create pull requests, and pull requests opened with it
@@ -52,13 +57,14 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   publish-packages:
-    name: Publish released packages to npm
+    name: Stage released packages on npm
     needs: update-release-pr
-    # Publishing stays off until the NPM_PUBLISH_ENABLED variable is true.
-    if: needs.update-release-pr.outputs.releases_created == 'true' && vars.NPM_PUBLISH_ENABLED == 'true'
+    # Publishing stays off until the NPM_PUBLISH_ENABLED variable is true. A
+    # manual run with `stage` set stages those packages without a new release.
+    if: (needs.update-release-pr.outputs.releases_created == 'true' || inputs.stage != '') && vars.NPM_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # id-token lets npm publish through trusted publishing and sign provenance.
+    # id-token lets npm stage through trusted publishing and sign provenance.
     permissions:
       contents: read
       id-token: write
@@ -82,11 +88,19 @@ jobs:
         run: npm run check
 
       # npm authenticates through trusted publishing (OIDC): each package's
-      # trusted publisher names this repository and workflow file.
-      - name: Publish each released package
+      # trusted publisher names this repository and workflow file and may only
+      # stage, so a maintainer approves each version with 2FA before it is
+      # public. `npm stage` ignores workspaces, so it runs in each package.
+      - name: Stage each released package
         env:
           PATHS_RELEASED: ${{ needs.update-release-pr.outputs.paths_released }}
+          STAGE: ${{ inputs.stage }}
         run: |
-          for path in $(node -e 'for (const p of JSON.parse(process.env.PATHS_RELEASED)) console.log(p)'); do
-            npm publish --workspace "$path" --provenance --access public
+          if [ -n "$STAGE" ]; then
+            paths="$STAGE"
+          else
+            paths=$(node -e 'for (const p of JSON.parse(process.env.PATHS_RELEASED)) console.log(p)')
+          fi
+          for path in $paths; do
+            (cd "$path" && npm stage publish --provenance --access public)
           done
