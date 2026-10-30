@@ -57,7 +57,7 @@ const withNewFields = (policy) => ({
 });
 
 test('both consumer policies validate as they are and with the optional fields', () => {
-  for (const name of ['prismatic', 'mcc']) {
+  for (const name of ['widgets', 'gadgets']) {
     const policy = read(name);
     const full = withNewFields(structuredClone(policy));
     assert.equal(validatePolicy(full), full, name);
@@ -138,7 +138,7 @@ test('the repository comes from the origin remote of the policy directory', () =
     'https://github.com/acme/widgets',
   ]) {
     const directory = clone(url);
-    cpSync(join(fixture('prismatic'), '.agents'), join(directory, '.agents'), {
+    cpSync(join(fixture('widgets'), '.agents'), join(directory, '.agents'), {
       recursive: true,
     });
     const policy = loadPolicy(directory);
@@ -159,7 +159,7 @@ test('the repository comes from the origin remote of the policy directory', () =
 });
 
 test('loading fills in defaults for the new optional fields', () => {
-  const policy = read('prismatic');
+  const policy = read('widgets');
   assert.equal(policy.binding.project.ownerType, 'user');
   assert.deepEqual(policy.binding.features, {
     infrastructure: false,
@@ -208,7 +208,7 @@ test('callers require only the sections they declare', () => {
     /Unknown policy section: binding.projects/,
   );
   assert.throws(
-    () => loadPolicy(fixture('prismatic'), { sections: ['labels'] }),
+    () => loadPolicy(fixture('widgets'), { sections: ['labels'] }),
     /missing labels/,
   );
   assert.throws(
@@ -218,7 +218,7 @@ test('callers require only the sections they declare', () => {
 });
 
 test('the schema rejects unknown keys at every level', () => {
-  const policy = withNewFields(read('mcc'));
+  const policy = withNewFields(read('gadgets'));
   /** @type {[string, (copy: Record<string, any>) => void, RegExp][]} */
   const cases = [
     ['root', (copy) => (copy.extra = 1), /root has unknown key extra/],
@@ -325,11 +325,11 @@ test('the schema rejects values of the wrong shape', () => {
 });
 
 test('binding helpers read repository facts and name what is missing', () => {
-  const policy = withNewFields(read('prismatic'));
-  policy.repository = 'samlevin/prismatic';
+  const policy = withNewFields(read('widgets'));
+  policy.repository = 'octo-user/widgets';
   assert.deepEqual(project(policy), policy.binding.project);
-  assert.equal(binding(policy).label, 'Prismatic');
-  assert.equal(binding(policy).repository, 'samlevin/prismatic');
+  assert.equal(binding(policy).label, 'Widgets');
+  assert.equal(binding(policy).repository, 'octo-user/widgets');
   assert.throws(() => binding({}), /binding is missing binding/);
   assert.throws(() => binding({ binding: {} }), /missing project.owner/);
   assert.throws(() => project({}), /missing project.owner/);
@@ -344,18 +344,9 @@ test('binding helpers read repository facts and name what is missing', () => {
 });
 
 test('the project URL and REST path follow the owner type', () => {
-  const policy = read('mcc');
-  policy.repository = 'samlevin/mcc-stats-suite';
+  const policy = read('gadgets');
+  policy.repository = 'acme/gadgets';
   const { owner, number } = policy.binding.project;
-  assert.equal(
-    placeholders(policy)['project.url'],
-    `https://github.com/users/${owner}/projects/${number}`,
-  );
-  assert.equal(
-    placeholders(policy)['project.restPath'],
-    `users/${owner}/projectsV2/${number}`,
-  );
-  policy.binding.project.ownerType = 'organization';
   assert.equal(
     placeholders(policy)['project.url'],
     `https://github.com/orgs/${owner}/projects/${number}`,
@@ -364,11 +355,20 @@ test('the project URL and REST path follow the owner type', () => {
     placeholders(policy)['project.restPath'],
     `orgs/${owner}/projectsV2/${number}`,
   );
+  policy.binding.project.ownerType = 'user';
+  assert.equal(
+    placeholders(policy)['project.url'],
+    `https://github.com/users/${owner}/projects/${number}`,
+  );
+  assert.equal(
+    placeholders(policy)['project.restPath'],
+    `users/${owner}/projectsV2/${number}`,
+  );
 });
 
 test('loading fills the model, effort, role, and rubric defaults, and a policy overrides them', () => {
   const directory = clone('https://github.com/acme/widgets.git');
-  cpSync(join(fixture('prismatic'), '.agents'), join(directory, '.agents'), {
+  cpSync(join(fixture('widgets'), '.agents'), join(directory, '.agents'), {
     recursive: true,
   });
   assert.deepEqual(validatePolicy(DEFAULTS), DEFAULTS);
@@ -407,7 +407,7 @@ test('loading fills the model, effort, role, and rubric defaults, and a policy o
   // Defaults never leak between policies.
   minimal.roles.implementer = 'changed';
   assert.equal(DEFAULTS.roles['ac-implementer'], 'implementation');
-  // The prismatic policy's own capabilities win over the defaults.
+  // The widgets policy's own capabilities win over the defaults.
   const loaded = loadPolicy(directory);
-  assert.deepEqual(loaded.capabilities, read('prismatic').capabilities);
+  assert.deepEqual(loaded.capabilities, read('widgets').capabilities);
 });

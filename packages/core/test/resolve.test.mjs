@@ -11,7 +11,7 @@ import {
 } from '@agenticool/core';
 
 const policy = loadPolicy(
-  fileURLToPath(new URL('fixtures/prismatic', import.meta.url)),
+  fileURLToPath(new URL('fixtures/widgets', import.meta.url)),
 );
 // The same policy bound to another repository with no CI-applied infrastructure.
 const other = {

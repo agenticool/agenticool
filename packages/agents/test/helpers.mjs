@@ -1,5 +1,5 @@
 // Shared fixtures for the generator tests. The fixture consumer carries the
-// prismatic binding and its committed generated output.
+// widgets binding and its committed generated output.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
@@ -29,14 +29,14 @@ export function clone(repository) {
 }
 
 export const COMMITTED = fileURLToPath(
-  new URL('fixtures/prismatic', import.meta.url),
+  new URL('fixtures/widgets', import.meta.url),
 );
-// The committed fixture consumer in a clone of samlevin/prismatic, so its
+// The committed fixture consumer in a clone of octo-user/widgets, so its
 // origin remote names the repository.
-export const FIXTURE = clone('samlevin/prismatic');
+export const FIXTURE = clone('octo-user/widgets');
 cpSync(COMMITTED, FIXTURE, { recursive: true });
 export const policy = Object.assign(loadPolicy(FIXTURE), {
-  repository: 'samlevin/prismatic',
+  repository: 'octo-user/widgets',
 });
 // The same policy bound to another repository with no CI-applied infrastructure.
 /** @type {Policy} */

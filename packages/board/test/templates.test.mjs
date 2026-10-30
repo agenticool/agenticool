@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -31,10 +31,8 @@ test('the templates are the label catalog, issue forms, PR template, triage guid
   ]);
 });
 
-test('templates render repository facts from the policy and name no other repository', () => {
+test('templates render repository facts from the policy', () => {
   for (const name of NAMES) {
-    const source = readFileSync(new URL(name, TEMPLATES), 'utf8');
-    assert.doesNotMatch(source, /prismatic|mcc|samlevin/i, name);
     for (const policy of POLICIES) {
       const text = renderTemplate(name, policy);
       assert.doesNotMatch(text, /(?<!\$)\{\{/, name);

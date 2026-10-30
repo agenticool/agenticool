@@ -75,7 +75,7 @@ test('titles that mention "part N" never read as a layer suffix', () => {
 test('canonical names accept layers and reject other shapes', () => {
   for (const name of [
     'agent/48-generate',
-    'samlevin/7-a-b-part-2',
+    'octo-user/7-a-b-part-2',
     'agent/1-x-part-12',
     'a-b/1-x',
   ])
@@ -107,8 +107,13 @@ test('branchName applies actor and layer', () => {
     'agent/48-do-a-thing',
   );
   assert.equal(
-    branchName({ issue: 48, title: 'Do a Thing', actor: 'SamLevin', layer: 3 }),
-    'samlevin/48-do-a-thing-part-3',
+    branchName({
+      issue: 48,
+      title: 'Do a Thing',
+      actor: 'Octo-User',
+      layer: 3,
+    }),
+    'octo-user/48-do-a-thing-part-3',
   );
   assert.equal(
     branchName({ issue: 48, title: 'Do a Thing', layer: 1 }),
