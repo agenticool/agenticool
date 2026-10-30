@@ -18,7 +18,8 @@
       "component": "board"
     },
     "packages/dispatch": {
-      "component": "dispatch"
+      "component": "dispatch",
+      "release-as": "0.1.0"
     },
     "packages/spec": {
       "component": "spec"
