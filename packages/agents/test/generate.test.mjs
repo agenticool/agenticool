@@ -271,7 +271,7 @@ capability: issue-creation
 claude:
   disable-model-invocation: true
 codex:
-  display_name: "Prismatic: Sample"
+  display_name: "Widgets: Sample"
   allow_implicit_invocation: false
 ---
 Body.
@@ -295,10 +295,7 @@ Body.
   ]);
   assert.match(codex['SKILL.md'], new RegExp(`^name: sample$`, 'm'));
   assert.doesNotMatch(codex['SKILL.md'], /^model:/m);
-  assert.match(
-    codex['agents/openai.yaml'],
-    /display_name: 'Prismatic: Sample'/,
-  );
+  assert.match(codex['agents/openai.yaml'], /display_name: 'Widgets: Sample'/);
   assert.match(codex['agents/openai.yaml'], /allow_implicit_invocation: false/);
   assert.throws(
     () => renderWorkflow(policy, 'other', workflow, 'codex'),
