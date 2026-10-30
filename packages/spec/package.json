@@ -1,6 +1,6 @@
 {
   "name": "@agenticool/spec",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Parse a specification written to the spec-slicing format, check its pre-flight rules, render every issue body offline, and file the confirmed plan as linked GitHub issues with resumable state.",
   "license": "MIT",
   "type": "module",
@@ -32,7 +32,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@agenticool/board": "^0.0.0",
-    "@agenticool/core": "^0.0.0"
+    "@agenticool/board": "^0.1.0",
+    "@agenticool/core": "^0.1.0"
   }
 }

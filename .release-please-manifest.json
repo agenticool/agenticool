@@ -1,7 +1,7 @@
 {
-  "packages/core": "0.0.0",
-  "packages/board": "0.0.0",
-  "packages/dispatch": "0.0.0",
-  "packages/spec": "0.0.0",
-  "packages/agents": "0.0.0"
+  "packages/core": "0.1.0",
+  "packages/board": "0.1.0",
+  "packages/dispatch": "0.1.0",
+  "packages/spec": "0.1.0",
+  "packages/agents": "0.1.0"
 }
